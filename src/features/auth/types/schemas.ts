@@ -40,6 +40,33 @@ export const totpCodeSchema = z.object({
   code: z.string().regex(/^\d{6}$/, 'El codigo son 6 digitos'),
 })
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().min(1, 'El correo es obligatorio').email('Correo no valido'),
+})
+
+/**
+ * Contraseña nueva tras seguir el enlace de recuperacion.
+ *
+ * Se pide dos veces, a diferencia de cuando un administrador asigna la de otra
+ * persona. Ahi el administrador VE lo que escribio y puede reasignarla; aqui un
+ * error de tecleo deja a alguien fuera de su cuenta, y el unico camino de vuelta
+ * es otro correo — que es justo lo que acaba de costarle llegar hasta aqui.
+ */
+export const updatePasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(12, 'Minimo 12 caracteres')
+      .regex(/[a-z]/, 'Debe incluir una minuscula')
+      .regex(/[A-Z]/, 'Debe incluir una mayuscula')
+      .regex(/[0-9]/, 'Debe incluir un numero'),
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirm'],
+  })
+
 export type Credentials = z.infer<typeof credentialsSchema>
 export type SignUpInput = z.infer<typeof signUpSchema>
 export type OrganizationInput = z.infer<typeof organizationSchema>
