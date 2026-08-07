@@ -1,19 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { signUpSchema } from '../types/schemas'
 import { Button, Input, Label, FormError, Callout } from '@/shared/components/ui'
 
+/**
+ * Registro publico. Crea SIEMPRE una organizacion nueva.
+ *
+ * Ya no existe la variante "me registro porque me invitaron": a los miembros de
+ * un tenant existente los da de alta un administrador desde
+ * /settings/users, con contraseña incluida. Esta pantalla es solo la puerta de
+ * entrada de un cliente nuevo.
+ */
 export function SignUpForm() {
   const router = useRouter()
-  // Si el registro viene de una invitacion, al terminar se vuelve al enlace en
-  // vez de ir a /onboarding: lo contrario crearia una organizacion nueva y
-  // dejaria la invitacion sin poder aceptarse, porque accept_invitation exige
-  // que la cuenta no pertenezca ya a ninguna.
-  const inviteToken = useSearchParams().get('invite')
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
@@ -55,7 +58,7 @@ export function SignUpForm() {
       return
     }
 
-    router.replace(inviteToken ? `/invite/${inviteToken}` : '/onboarding')
+    router.replace('/onboarding')
     router.refresh()
   }
 

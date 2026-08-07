@@ -567,24 +567,41 @@ export type Database = {
           quarantined: boolean
         }[]
       }
-      create_invitation: {
+      /*
+       * Administracion de usuarios de consola.
+       *
+       * Las cuatro escriben en el esquema `auth`, que es de GoTrue, y por eso
+       * son SECURITY DEFINER en vez de operaciones de tabla: ver el encabezado
+       * de supabase/migrations/20260807160000_user_administration.sql.
+       *
+       * Ninguna se llama sin pasar por los schemas de
+       * src/features/tenant/types/schemas.ts — la base valida de nuevo, pero un
+       * error de Postgres es peor mensaje que uno de zod.
+       */
+      admin_create_user: {
         Args: {
           p_email: string
+          p_password: string
+          p_full_name?: string | null
           p_role?: Database['public']['Enums']['app_role']
-          p_days?: number
         }
-        Returns: { id: string; token: string; expires_at: string }[]
+        Returns: string
       }
-      preview_invitation: {
-        Args: { p_token: string }
-        Returns: {
-          organization_name: string
-          email: string
-          role: Database['public']['Enums']['app_role']
-          expires_at: string
-        }[]
+      admin_update_user: {
+        Args: {
+          p_user_id: string
+          /** `null` = no tocar el nombre. */
+          p_full_name?: string | null
+          /** `null` = no tocar el rol. */
+          p_role?: Database['public']['Enums']['app_role'] | null
+        }
+        Returns: undefined
       }
-      accept_invitation: { Args: { p_token: string }; Returns: string }
+      admin_set_user_password: {
+        Args: { p_user_id: string; p_password: string }
+        Returns: undefined
+      }
+      admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       bootstrap_organization: {
         Args: { p_full_name?: string; p_org_name: string; p_org_slug: string }
         Returns: string
