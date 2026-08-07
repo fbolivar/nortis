@@ -20,6 +20,8 @@ import {
 import { StringListInput } from './string-list-input'
 import { PolicySimulator } from './policy-simulator'
 import {
+  APLICACION_POR_CANAL,
+  NIVEL_LABEL,
   CLIPBOARD_MODE_HELP,
   CLIPBOARD_MODE_LABEL,
   PRINTING_MODE_HELP,
@@ -254,8 +256,13 @@ export function PolicyEditor({
       {/* ---------------------------------------------------- Almacenamiento */}
       <Card>
         <CardHeader>
-          <CardTitle>Guardado de archivos</CardTitle>
-          <CardDescription>Donde puede guardar el usuario y que extensiones se impiden</CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <CardTitle>Guardado de archivos</CardTitle>
+              <CardDescription>Donde puede guardar el usuario y que extensiones se impiden</CardDescription>
+            </div>
+            <Aplicacion canal="storage" />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <StringListInput
@@ -282,6 +289,7 @@ export function PolicyEditor({
       <Card>
         <CardHeader>
           <CardTitle>Dispositivos USB</CardTitle>
+          <Aplicacion canal="usb" />
           <CardDescription>Canal de fuga mas comun en equipos sin dominio</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -311,6 +319,7 @@ export function PolicyEditor({
       <Card>
         <CardHeader>
           <CardTitle>Navegacion</CardTitle>
+          <Aplicacion canal="web" />
         </CardHeader>
         <CardContent className="space-y-4">
           <StringListInput
@@ -353,6 +362,7 @@ export function PolicyEditor({
       <Card>
         <CardHeader>
           <CardTitle>Portapapeles</CardTitle>
+          <Aplicacion canal="clipboard" />
         </CardHeader>
         <CardContent className="space-y-4">
           <ModeSelector
@@ -381,6 +391,7 @@ export function PolicyEditor({
       <Card>
         <CardHeader>
           <CardTitle>Impresion</CardTitle>
+          <Aplicacion canal="printing" />
         </CardHeader>
         <CardContent>
           <ModeSelector
@@ -490,6 +501,36 @@ export function PolicyEditor({
           Su rol permite consultar las politicas pero no modificarlas.
         </Callout>
       )}
+    </div>
+  )
+}
+
+/**
+ * Etiqueta que dice si un control PREVIENE de verdad o solo deja constancia.
+ *
+ * Existe porque el editor ofrece modos que el agente no puede cumplir. El agente
+ * corre en modo usuario —meterlo en el kernel exige un driver con certificado EV
+ * y atestacion de Microsoft, y un fallo ahi es un pantallazo azul en el equipo
+ * del cliente—, y desde ahi impedir un guardado es imposible.
+ *
+ * Sin este aviso, un administrador configura "bloquear", ve el equipo cubierto
+ * en el panel y confia en una proteccion que no existe. Se enterara el dia que
+ * alguien se lleve la informacion: el peor momento imaginable para descubrirlo.
+ *
+ * El tono NO usa rojo. `solo_registra` no es un error ni una alerta de
+ * seguridad: es informacion sobre el alcance real de la herramienta, y pintarla
+ * de rojo la mezclaria con las severidades de incidente, que en esta consola
+ * significan otra cosa.
+ */
+function Aplicacion({ canal }: { canal: keyof typeof APLICACION_POR_CANAL }) {
+  const { nivel, nota } = APLICACION_POR_CANAL[canal]
+
+  const tono = nivel === 'previene' ? 'success' : nivel === 'mitiga' ? 'warning' : 'neutral'
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2">
+      <Badge tone={tono}>{NIVEL_LABEL[nivel]}</Badge>
+      {nota ? <span className="text-xs text-muted-foreground">{nota}</span> : null}
     </div>
   )
 }
