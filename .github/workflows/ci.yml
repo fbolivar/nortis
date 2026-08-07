@@ -76,3 +76,127 @@ jobs:
       # distintas, dos casillas distintas.
       - name: npm audit
         run: npm audit --audit-level=high
+
+  # ===========================================================================
+  contrato:
+    name: Contrato del agente y aislamiento entre tenants
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # POR QUE ESTE JOB EXISTE
+    #
+    # El esquema tiene dos suites que hasta ahora NO se ejecutaban nunca: la de
+    # aislamiento multi-tenant (cuya propia cabecera decia "PENDIENTE DE
+    # EJECUCION") y la del contrato HTTP del agente. Las dos necesitan una base
+    # de datos, y CI no tenia ninguna.
+    #
+    # Sin esto, el contrato que el agente Go va a implementar puede romperse en
+    # un refactor sin que nadie se entere hasta que doscientos equipos dejen de
+    # reportar en produccion. Un lint y un build no ven nada de eso: compilan
+    # perfectamente una API que ya no respeta sus propias invariantes.
+    #
+    # SIN SECRETOS, igual que el resto del workflow. Se levanta un Supabase
+    # LOCAL y efimero dentro del runner; no se toca el proyecto de produccion ni
+    # se necesita ninguna credencial de verdad. La clave del fixture es una
+    # cadena fija versionada en el repositorio y solo vale contra esa base
+    # (ver supabase/seed/ci_agent_fixture.sql).
+    env:
+      # Declarada UNA vez y pasada al fixture y a la suite. Si las dos copias
+      # divergen, el sintoma es un 401 en el primer enrolamiento que no explica
+      # nada.
+      NORTIS_CI_API_KEY: nrt_live_c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Aplica las migraciones de supabase/migrations en orden y deja el stack
+      # escuchando en 127.0.0.1:54321.
+      - name: Levantar Supabase local
+        run: supabase start
+
+      # Las claves del stack local se generan al arrancar. Se leen en vez de
+      # fijarlas: han cambiado de formato entre versiones de la CLI, y una
+      # constante obsoleta produce un fallo de autenticacion que parece un bug
+      # del producto.
+      - name: Leer credenciales del stack local
+        run: |
+          supabase status -o json > /tmp/supabase-status.json
+          # Se imprime a proposito: son claves de juguete de una base que muere
+          # con el job, y verlas ahorra una hora de depuracion a ciegas.
+          cat /tmp/supabase-status.json
+
+          API_URL=$(jq -r '.API_URL // empty' /tmp/supabase-status.json)
+          ANON_KEY=$(jq -r '.ANON_KEY // .PUBLISHABLE_KEY // empty' /tmp/supabase-status.json)
+          DB_URL=$(jq -r '.DB_URL // empty' /tmp/supabase-status.json)
+
+          if [ -z "$API_URL" ] || [ -z "$ANON_KEY" ] || [ -z "$DB_URL" ]; then
+            echo "::error::supabase status no devolvio API_URL/ANON_KEY/DB_URL." \
+                 "Probablemente cambiaron los nombres de campo en la CLI."
+            exit 1
+          fi
+
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "SUPABASE_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+
+      # pgTAP. Corre ANTES del fixture: la suite monta sus propios tenants y
+      # termina en rollback, asi que no debe encontrarse datos ajenos delante.
+      - name: Aislamiento entre tenants (pgTAP)
+        run: supabase test db
+
+      - name: Sembrar el tenant de integracion continua
+        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/seed/ci_agent_fixture.sql
+
+      # NEXT_PUBLIC_* se resuelve en tiempo de COMPILACION, no de ejecucion: hay
+      # que construir con la URL del stack local ya puesta. Por eso este job
+      # compila por su cuenta en vez de reutilizar el build del job anterior,
+      # que se hace sin variables a proposito.
+      - name: Build apuntando al stack local
+        run: npm run build
+
+      - name: Arrancar la aplicacion y esperar a que responda
+        run: |
+          npm start > /tmp/nortis-app.log 2>&1 &
+          echo $! > /tmp/nortis-app.pid
+
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/agent/version > /dev/null 2>&1; then
+              echo "La aplicacion responde tras ${i}s."
+              exit 0
+            fi
+            # Si el proceso murio, no tiene sentido esperar los 60 segundos.
+            if ! kill -0 "$(cat /tmp/nortis-app.pid)" 2>/dev/null; then
+              echo "::error::El servidor termino antes de aceptar peticiones."
+              cat /tmp/nortis-app.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "::error::La aplicacion no respondio en 60 segundos."
+          cat /tmp/nortis-app.log
+          exit 1
+
+      - name: Contrato HTTP de /api/agent
+        run: node tests/agent-api.test.mjs "$NORTIS_CI_API_KEY"
+
+      # `always()`: si la suite falla, el log del servidor suele contener la
+      # causa real (un error de Postgres que el handler tradujo a un 500 escueto).
+      - name: Log del servidor
+        if: always()
+        run: cat /tmp/nortis-app.log || true
