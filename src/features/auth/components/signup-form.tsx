@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { signUpSchema } from '../types/schemas'
@@ -9,6 +9,11 @@ import { Button, Input, Label, FormError, Callout } from '@/shared/components/ui
 
 export function SignUpForm() {
   const router = useRouter()
+  // Si el registro viene de una invitacion, al terminar se vuelve al enlace en
+  // vez de ir a /onboarding: lo contrario crearia una organizacion nueva y
+  // dejaria la invitacion sin poder aceptarse, porque accept_invitation exige
+  // que la cuenta no pertenezca ya a ninguna.
+  const inviteToken = useSearchParams().get('invite')
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
@@ -50,7 +55,7 @@ export function SignUpForm() {
       return
     }
 
-    router.replace('/onboarding')
+    router.replace(inviteToken ? `/invite/${inviteToken}` : '/onboarding')
     router.refresh()
   }
 

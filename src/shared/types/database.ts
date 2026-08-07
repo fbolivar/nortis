@@ -391,6 +391,27 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          id: string
+          organization_id: string
+          email: string
+          role: Database['public']['Enums']['app_role']
+          invited_by: string | null
+          expires_at: string
+          accepted_at: string | null
+          accepted_by: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          created_at: string
+        }
+        Insert: never
+        Update: {
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
@@ -546,6 +567,24 @@ export type Database = {
           quarantined: boolean
         }[]
       }
+      create_invitation: {
+        Args: {
+          p_email: string
+          p_role?: Database['public']['Enums']['app_role']
+          p_days?: number
+        }
+        Returns: { id: string; token: string; expires_at: string }[]
+      }
+      preview_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          organization_name: string
+          email: string
+          role: Database['public']['Enums']['app_role']
+          expires_at: string
+        }[]
+      }
+      accept_invitation: { Args: { p_token: string }; Returns: string }
       bootstrap_organization: {
         Args: { p_full_name?: string; p_org_name: string; p_org_slug: string }
         Returns: string

@@ -13,7 +13,7 @@ import type { Database } from '@/shared/types/database'
  * inalcanzable — un fallo que solo aparece probando por HTTP, porque llamando a
  * los RPC directamente el proxy ni siquiera interviene.
  */
-const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/share', '/api/agent']
+const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/share', '/invite', '/api/agent']
 
 function isPublic(pathname: string) {
   return pathname === '/' || PUBLIC_PATHS.some((p) => pathname.startsWith(p))
