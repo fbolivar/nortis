@@ -7,11 +7,11 @@ activo desde el primer commit, en el **mismo archivo** que la crea.
 
 | | |
 |---|---|
-| Proyecto | `nortis` · ref `inshogremvtigfwqxqrt` · us-east-1 · ACTIVE_HEALTHY |
-| Migraciones | **Aplicadas** (17) |
+| Proyecto | `nortis` · us-east-1 · el `project ref` vive en el entorno, no en el repositorio |
+| Migraciones | **Aplicadas** (27) |
 | Tests de aislamiento | **17/17 en verde**, ejecutados contra el proyecto real |
 | Linter de seguridad | **0 errores.** Quedan WARN/INFO aceptados a conciencia (ver migración 12) |
-| pg_cron | Habilitado, 3 jobs programados |
+| pg_cron | Habilitado, 4 jobs programados |
 
 Los tests corren dentro de una transacción que siempre revierte: no dejan datos
 de prueba en la base.
@@ -37,6 +37,16 @@ de prueba en la base.
 | `…121400_fix_api_key_audit_noise.sql` | El uso del agente deja de ensuciar `audit_log` |
 | `…121500_tenant_offboarding_path.sql` | `purge_organization()` — baja de tenant |
 | `…121600_silence_audit_during_purge.sql` | Los triggers de auditoría callan durante una purga |
+| `…121700_reporting_functions.sql` | Agregaciones del Módulo 1 (SECURITY INVOKER) |
+| `…121800_policy_simulator.sql` | `simulate_policy()` — impacto antes de desplegar |
+| `…121900_dlp_detection_engine.sql` | Motor de incidentes, agrupado por equipo/regla/día |
+| `…122000_schedule_dlp_detection.sql` | Job de detección cada 10 minutos |
+| `…122100_encrypted_storage_bucket.sql` | Bucket privado + RLS por organización |
+| `…122200_tenant_key_custody.sql` | Clave maestra en Vault + cifrado por sobre |
+| `…122300_envelope_columns_and_sharing.sql` | Envío a terceros con credencial de un solo uso |
+| `…122400_shared_bucket_select_policy.sql` | FIX: la revocación no borraba el archivo |
+| `…122500_agent_api_rate_limit.sql` | Límite de tasa enforzado en la base |
+| `…122600_agent_api_surface.sql` | `agent_enroll/ingest/policy/heartbeat` |
 
 El orden importa: los helpers se crean antes que las tablas que los usan, y
 `security_profiles` antes que `endpoints` por la FK de perfil asignado.
@@ -99,9 +109,14 @@ para borrar una organización. Sin ella, la inmutabilidad de `audit_log` hacía
 imposible dar de baja a un cliente — bloqueando tanto la terminación de contrato
 como el derecho de supresión (Ley 1581, art. 8).
 
+**Sin `service_role` en ninguna parte.** Ni la consola ni `/api/agent` usan la
+clave que salta todo el RLS. Las operaciones privilegiadas pasan por funciones
+`SECURITY DEFINER` que se autentican con la credencial de quien llama —sesión de
+usuario o API key del agente— y su autoridad queda acotada a ese tenant. No
+existe una credencial global que robar.
+
 ## Pendiente
 
-- `SUPABASE_SERVICE_ROLE_KEY` — sólo la necesitará la superficie `/api/agent`.
 - Tabla de invitaciones — sin ella no se puede sumar un segundo usuario a una
   organización existente. No está en el modelo de A.3; decidir si entra.
 - Clave de tenant en Supabase Vault para `encryption_scheme = aes_256_gcm_tenant_key`.

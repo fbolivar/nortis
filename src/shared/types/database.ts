@@ -2,7 +2,10 @@
  * Tipos del esquema de Supabase.
  *
  * Regenerar tras cada migracion:
- *   npx supabase gen types typescript --project-id inshogremvtigfwqxqrt > src/shared/types/database.ts
+ *   npx supabase gen types typescript --project-id <REF> > src/shared/types/database.ts
+ *   (el REF esta en Dashboard > Project Settings; no se versiona a proposito:
+ *    en un repositorio publico solo sirve para indicarle a un atacante que
+ *    proyecto sondear)
  *   (luego volver a añadir create_api_key si la version del generador no lo trae,
  *    y los alias de dominio del final del archivo)
  *
