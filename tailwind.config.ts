@@ -9,9 +9,13 @@ import type { Config } from 'tailwindcss'
  *    azul estan reservados para estados. Si el color de severidad se gasta en
  *    decoracion, deja de significar nada y el analista pierde la capacidad de
  *    escanear una tabla y detectar lo urgente.
- * 2. EL VIOLETA ES LA MARCA. Es el unico acento decorativo permitido: accion
- *    principal, estado activo de navegacion y serie unica de graficas. Un boton
- *    secundario, un encabezado o un borde usan la escala neutra.
+ * 2. EL AZUL MARINO DEL LOGO ES LA MARCA. Es el unico acento decorativo
+ *    permitido: accion principal, estado activo de navegacion y serie unica de
+ *    graficas. Un boton secundario, un encabezado o un borde usan la escala
+ *    neutra.
+ * 3. EL CIAN DE LA AGUJA (`accent`) SOLO VIVE SOBRE SUPERFICIE OSCURA. Da 1.5:1
+ *    sobre blanco, asi que nunca lleva texto ni rellena nada informativo sobre
+ *    el lienzo claro. Para eso existe `accent-strong`, la version oscurecida.
  */
 const config: Config = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
@@ -23,7 +27,7 @@ const config: Config = {
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        // Superficie elevada: paneles y tarjetas sobre el lienzo lavanda.
+        // Superficie elevada: paneles y tarjetas sobre el lienzo azul-gris.
         surface: {
           DEFAULT: 'hsl(var(--surface))',
           muted: 'hsl(var(--surface-muted))',
@@ -36,6 +40,17 @@ const config: Config = {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
           subtle: 'hsl(var(--primary-subtle))',
+          // Azul intermedio para bloques que se apoyan SOBRE `ink`. El primario
+          // ahi se funde con el fondo (1.5:1); este mantiene 3:1 de separacion.
+          bright: 'hsl(var(--primary-bright))',
+          'bright-foreground': 'hsl(var(--primary-bright-foreground))',
+        },
+        // Cian de la aguja de la brujula. Ver regla 3 arriba.
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+          strong: 'hsl(var(--accent-strong))',
+          subtle: 'hsl(var(--accent-subtle))',
         },
         // Bloques invertidos: pastilla de navegacion, tarjetas de contraste.
         ink: {
@@ -93,11 +108,12 @@ const config: Config = {
         '3xl': '1.75rem',
       },
       boxShadow: {
-        // Sombra unica de tarjeta: difusa, tintada de violeta y sin offset
-        // lateral. Sobre lavanda una sombra gris se ve sucia.
-        card: '0 1px 2px 0 rgb(37 24 84 / 0.04), 0 12px 32px -16px rgb(37 24 84 / 0.14)',
-        pill: '0 8px 24px -12px rgb(37 24 84 / 0.35)',
-        lifted: '0 2px 4px 0 rgb(37 24 84 / 0.05), 0 20px 44px -20px rgb(37 24 84 / 0.22)',
+        // Sombra unica de tarjeta: difusa, tintada con el azul marino de marca y
+        // sin offset lateral. Sobre el lienzo azul-gris una sombra gris se ve
+        // sucia.
+        card: '0 1px 2px 0 rgb(15 28 56 / 0.04), 0 12px 32px -16px rgb(15 28 56 / 0.14)',
+        pill: '0 8px 24px -12px rgb(15 28 56 / 0.35)',
+        lifted: '0 2px 4px 0 rgb(15 28 56 / 0.05), 0 20px 44px -20px rgb(15 28 56 / 0.22)',
       },
       keyframes: {
         'fade-in': {
@@ -108,10 +124,39 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(-8px) scale(0.99)' },
           to: { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
+        /*
+         * Entrada del panel. Se aplica con un retardo creciente por tarjeta para
+         * que la rejilla se arme de arriba abajo en vez de aparecer de golpe: el
+         * ojo sigue el orden de lectura y el tablero se percibe como algo que se
+         * construye, no como un salto de fotograma.
+         *
+         * 10px de desplazamiento y no mas: por encima de ~16px el movimiento
+         * empieza a leerse como carga lenta en lugar de como acabado.
+         */
+        rise: {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        /* Barrido de luz sobre superficie oscura. Decorativo, nunca informativo. */
+        sheen: {
+          '0%': { transform: 'translateX(-130%)' },
+          '100%': { transform: 'translateX(230%)' },
+        },
+        /*
+         * Latido del punto de estado "en vivo". La opacidad NO baja de 0.45: por
+         * debajo el punto llega a desaparecer y se lee como un fallo de render.
+         */
+        'pulse-dot': {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.45', transform: 'scale(0.8)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 180ms ease-out',
         'sheet-in': 'sheet-in 160ms cubic-bezier(0.22, 1, 0.36, 1)',
+        rise: 'rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both',
+        sheen: 'sheen 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+        'pulse-dot': 'pulse-dot 2.4s ease-in-out infinite',
       },
     },
   },

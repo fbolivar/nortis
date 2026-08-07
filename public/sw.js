@@ -16,7 +16,10 @@
  * `beforeinstallprompt`.
  */
 
-const VERSION = 'nortis-v1'
+// Se sube la version al cambiar cualquier asset estatico sin hash en el nombre.
+// v2: iconos y logotipo reales del cliente — sin este salto, un dispositivo ya
+// instalado seguiria mostrando el icono generico indefinidamente.
+const VERSION = 'nortis-v2'
 const STATIC_CACHE = `${VERSION}-static`
 const SHELL_CACHE = `${VERSION}-shell`
 
@@ -26,7 +29,12 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll([OFFLINE_URL, '/icons/icon-192.png']))
+      .then((cache) =>
+        // El isotipo entra en el precache porque la pantalla de sin conexion lo
+        // referencia: si no esta, la unica pantalla que se ve sin red aparece
+        // con el logo roto.
+        cache.addAll([OFFLINE_URL, '/icons/icon-192.png', '/brand/isotipo.png'])
+      )
       // Se activa sin esperar a que se cierren las pestañas viejas. Es seguro
       // porque no hay estado compartido entre versiones del worker.
       .then(() => self.skipWaiting())
@@ -51,6 +59,7 @@ function isImmutableAsset(url) {
   return (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/brand/') ||
     url.pathname === '/favicon.ico'
   )
 }

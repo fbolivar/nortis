@@ -94,7 +94,7 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
 /* ------------------------------------------------------------------ Card --- */
 
 /**
- * Tarjeta blanca sobre lienzo lavanda.
+ * Tarjeta blanca sobre el lienzo azul-gris.
  *
  * La separacion la hace el contraste de superficie mas la sombra difusa, no un
  * borde: en una rejilla de seis tarjetas, seis bordes duros crean una malla que
@@ -263,6 +263,12 @@ export function Callout({
     </div>
   )
 }
+
+/*
+ * `Modal` NO vive aqui: es el unico primitivo que usa hooks, y este modulo no
+ * lleva directiva —lo importan Server Components y Client Components por igual—.
+ * Se importa desde '@/shared/components/ui/modal', que si es `'use client'`.
+ */
 
 /* --------------------------------------------------------------- FormError --- */
 

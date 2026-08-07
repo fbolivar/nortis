@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Nortis',
-    // Barra de estado translucida + `viewport-fit=cover`: el fondo lavanda de la
-    // app llega hasta arriba del todo en iOS. El contenido se aparta con las
+    // Barra de estado translucida + `viewport-fit=cover`: el lienzo azul-gris de
+    // la app llega hasta arriba del todo en iOS. El contenido se aparta con las
     // utilidades `pt-safe`/`pb-safe`.
     statusBarStyle: 'default',
   },
@@ -29,7 +29,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#f2f0fb',
+  // Mismo valor que `theme_color` del manifiesto: el lienzo de la marca
+  // (`--background`). Si divergen, la barra de estado cambia de color al
+  // instalar la PWA.
+  themeColor: '#f2f4f8',
   colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
@@ -40,8 +43,12 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // `data-scroll-behavior`: globals.css declara `scroll-behavior: smooth` en
+  // <html>, y sin este atributo Next lo desactiva durante los cambios de ruta
+  // —el scroll suave hace que al navegar se vea la pagina anterior deslizarse
+  // antes de llegar arriba—. Declararlo le confirma que es intencional.
   return (
-    <html lang="es">
+    <html lang="es" data-scroll-behavior="smooth">
       <body className="min-h-screen antialiased">
         {children}
         <ServiceWorkerRegister />

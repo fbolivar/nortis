@@ -42,8 +42,12 @@ function shortId(id: string) {
 
 /**
  * Dato del detalle. Etiqueta y valor se distinguen por tamaño y peso, nunca
- * bajando la opacidad del texto: sobre el violeta de marca, un blanco al 70% cae
+ * bajando la opacidad del texto: sobre el azul de marca, un blanco al 70% cae
  * por debajo del contraste minimo para texto pequeño.
+ *
+ * El velo interior es `white/10` y no `white/15`: sobre el azul intermedio, un
+ * 15% sube la superficie hasta dejar el texto blanco en 4.2:1 — por debajo del
+ * minimo. Con 10% se queda en 4.7:1.
  */
 function DetailCell({
   label,
@@ -55,9 +59,11 @@ function DetailCell({
   wide?: boolean
 }) {
   return (
-    <div className={cn('rounded-2xl bg-white/15 px-3.5 py-3', wide && 'col-span-2')}>
-      <p className="text-xs font-normal text-primary-foreground">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-primary-foreground">{value}</p>
+    <div className={cn('rounded-xl bg-white/10 px-3 py-2', wide && 'col-span-2')}>
+      <p className="text-[0.625rem] uppercase tracking-[0.08em] text-primary-bright-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate text-xs font-semibold text-primary-bright-foreground">{value}</p>
     </div>
   )
 }
@@ -73,6 +79,11 @@ function DetailCell({
  * Los colores de severidad siguen siendo pastillas claras —las mismas que en las
  * tablas— y no tonos adaptados al fondo oscuro: la severidad tiene que verse
  * exactamente igual aqui que en la cola, o deja de ser comparable.
+ *
+ * La fila seleccionada y la tarjeta de detalle usan `primary-bright` y no
+ * `primary`: el azul marino de marca sobre el bloque `ink` da 1.5:1 y las dos
+ * superficies se funden en una sola mancha oscura. El azul intermedio mantiene
+ * 3:1 contra la tinta y 5.8:1 con el texto blanco encima.
  */
 export function IncidentSpotlight({
   incidents,
@@ -110,13 +121,27 @@ export function IncidentSpotlight({
   const selected = filtered.find((incident) => incident.id === selectedId) ?? filtered[0]
 
   return (
-    <section className="rounded-[1.5rem] bg-ink p-4 sm:p-6 lg:rounded-[2rem]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section
+      className={cn(
+        // `relative` + `overflow-hidden`: los exige el halo cian de `ink-glow`,
+        // que es un pseudo-elemento absoluto y sin recorte se derramaria por
+        // fuera de las esquinas redondeadas.
+        'relative overflow-hidden rounded-2xl bg-ink p-4 sm:p-5',
+        'mesh-grid ink-glow motion-safe:animate-rise'
+      )}
+    >
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold tracking-tight text-ink-foreground">
+          <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-ink-foreground">
+            {/* Punto latiente: la cola se alimenta de telemetria que entra sola,
+                y sin esta señal el bloque se lee como una captura estatica. Es
+                decorativo — el dato duro es la marca de tiempo de cada fila. */}
+            <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
+              <span className="absolute inline-flex h-full w-full rounded-full bg-accent motion-safe:animate-pulse-dot" />
+            </span>
             Incidentes recientes
           </h2>
-          <p className="mt-1 text-sm text-ink-muted">
+          <p className="mt-0.5 text-xs text-ink-muted">
             Ultimas violaciones de politica detectadas en los equipos
           </p>
         </div>
@@ -124,7 +149,7 @@ export function IncidentSpotlight({
         <div
           role="tablist"
           aria-label="Filtrar incidentes"
-          className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 p-1"
+          className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/10 p-0.5"
         >
           {TABS.map(({ id, label }) => (
             <button
@@ -133,7 +158,7 @@ export function IncidentSpotlight({
               aria-selected={tab === id}
               onClick={() => setTab(id)}
               className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
                 tab === id
                   ? 'bg-surface text-foreground shadow-sm'
@@ -150,27 +175,37 @@ export function IncidentSpotlight({
         // Estado vacio propio y no `EmptyState`: aquel esta calibrado para
         // superficie clara y aqui el texto quedaria por debajo del contraste
         // minimo sobre el bloque oscuro.
-        <div className="mt-4 flex flex-col items-center justify-center rounded-[1.25rem] bg-white/5 px-6 py-12 text-center">
-          <p className="text-base font-semibold text-ink-foreground">
+        <div className="relative z-10 mt-3 flex flex-col items-center justify-center rounded-xl bg-white/5 px-6 py-10 text-center">
+          <p className="text-sm font-semibold text-ink-foreground">
             {incidents.length === 0 ? emptyTitle : 'Nada coincide con esta pestaña'}
           </p>
-          <p className="mt-2 max-w-md text-sm text-ink-muted">
+          <p className="mt-1.5 max-w-md text-xs text-ink-muted">
             {incidents.length === 0
               ? emptyDescription
               : 'Cambie a "Todos" para ver el resto de la cola.'}
           </p>
           {incidents.length === 0 && emptyAction ? (
-            <div className="mt-5">{emptyAction}</div>
+            <div className="mt-4">{emptyAction}</div>
           ) : null}
         </div>
       ) : (
         // En movil se apila: primero la lista, el detalle debajo. Partir la
         // pantalla en dos columnas de 160px dejaria ambas ilegibles.
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="relative z-10 mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_19rem]">
           {/* `min-w-0`: un item de rejilla arranca en `min-width:auto`, asi que la
               lista se estira hasta el nombre de regla mas largo y saca scroll
               horizontal al documento entero en telefono. */}
-          <ul className="flex min-w-0 flex-col gap-1.5" aria-label="Cola de incidentes">
+          {/*
+            La cola scrollea dentro de si misma. Con doce filas visibles el
+            bloque medía mas de 800px y empujaba las graficas fuera de pantalla:
+            el panel dejaba de ser un resumen de un vistazo. `max-h` en rem y no
+            un numero de filas para que el corte caiga siempre a media fila —una
+            fila cortada es lo que hace evidente que hay mas abajo.
+          */}
+          <ul
+            className="scroll-ink flex max-h-[19.5rem] min-w-0 flex-col gap-1 overflow-y-auto pr-1.5"
+            aria-label="Cola de incidentes"
+          >
             {filtered.map((incident) => {
               const active = selected?.id === incident.id
               return (
@@ -179,34 +214,46 @@ export function IncidentSpotlight({
                     onClick={() => setSelectedId(incident.id)}
                     aria-current={active ? 'true' : undefined}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors',
+                      'relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl py-2 pl-3 pr-2.5 text-left transition-colors',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
-                      active ? 'bg-primary' : 'bg-white/5 hover:bg-white/10'
+                      active ? 'bg-primary-bright' : 'bg-white/5 hover:bg-white/10'
                     )}
                   >
+                    {/* Marca cian de seleccion. Al reducir el alto de fila, el
+                        solo cambio de fondo ya no bastaba para localizar la fila
+                        activa de un vistazo en una cola de doce. */}
+                    {active ? (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent"
+                      />
+                    ) : null}
+
                     <span
                       className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-                        active ? 'bg-white/20 text-primary-foreground' : 'bg-white/10 text-ink-foreground'
+                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+                        active
+                          ? 'bg-white/15 text-primary-bright-foreground'
+                          : 'bg-white/10 text-ink-foreground'
                       )}
                       aria-hidden
                     >
-                      <ShieldAlert className="h-[1.125rem] w-[1.125rem]" />
+                      <ShieldAlert className="h-3.5 w-3.5" />
                     </span>
 
                     <span className="min-w-0 flex-1">
                       <span
                         className={cn(
-                          'block truncate text-sm font-medium',
-                          active ? 'text-primary-foreground' : 'text-ink-foreground'
+                          'block truncate text-xs font-medium',
+                          active ? 'text-primary-bright-foreground' : 'text-ink-foreground'
                         )}
                       >
                         {ruleLabel(incident.rule_triggered)}
                       </span>
                       <span
                         className={cn(
-                          'mt-0.5 flex items-center gap-2 text-xs',
-                          active ? 'text-primary-foreground' : 'text-ink-muted'
+                          'mt-0.5 flex items-center gap-1.5 text-[0.6875rem]',
+                          active ? 'text-primary-bright-foreground' : 'text-ink-muted'
                         )}
                       >
                         <span className="font-mono">{shortId(incident.id)}</span>
@@ -215,7 +262,10 @@ export function IncidentSpotlight({
                       </span>
                     </span>
 
-                    <Badge tone={SEVERITY_TONE[incident.severity]} className="shrink-0">
+                    <Badge
+                      tone={SEVERITY_TONE[incident.severity]}
+                      className="shrink-0 px-2 py-0.5 text-[0.625rem]"
+                    >
                       {SEVERITY_LABEL[incident.severity]}
                     </Badge>
                   </button>
@@ -225,18 +275,38 @@ export function IncidentSpotlight({
           </ul>
 
           {selected ? (
-            <article className="flex min-w-0 flex-col rounded-[1.25rem] bg-primary p-5">
-              <p className="font-mono text-xs text-primary-foreground">{shortId(selected.id)}</p>
-              <h3 className="mt-2 text-xl font-semibold leading-tight tracking-tight text-primary-foreground">
+            // `self-start`: sin el, la rejilla estira el detalle hasta el alto
+            // de la cola y deja un bloque azul vacio bajo el boton.
+            <article className="relative flex min-w-0 flex-col self-start overflow-hidden rounded-xl bg-primary-bright p-4">
+              {/* Barrido de luz al cambiar de incidente. `key` fuerza el remontaje
+                  para que la animacion se dispare en cada seleccion y el panel
+                  acuse el cambio: sin el, cambiar de fila solo permuta texto y
+                  cuesta ver que algo respondio. */}
+              <span
+                key={selected.id}
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent motion-safe:animate-sheen"
+                style={{ animationIterationCount: 1 }}
+              />
+
+              <p className="relative flex items-center gap-2 font-mono text-[0.6875rem] text-primary-bright-foreground">
+                {/* Marca cian: la aguja de la brujula reducida a un detalle
+                    grafico. Decorativa y aria-hidden — el cian sobre este azul
+                    da 3.8:1, suficiente para un elemento no textual pero no
+                    para texto pequeño, asi que nunca lleva contenido. */}
+                <span className="h-3 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                {shortId(selected.id)}
+              </p>
+              <h3 className="relative mt-1.5 text-base font-semibold leading-tight tracking-tight text-primary-bright-foreground">
                 {ruleLabel(selected.rule_triggered)}
               </h3>
-              <p className="mt-1.5 text-sm text-primary-foreground">
+              <p className="relative mt-1 text-xs text-primary-bright-foreground">
                 {CHANNEL_LABEL[selected.rule_channel ?? ''] ?? selected.rule_channel ?? 'Sin canal'}
                 {' · '}
                 {selected.endpoints?.hostname ?? 'Equipo desconocido'}
               </p>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="relative mt-3 grid grid-cols-2 gap-1.5">
                 <DetailCell label="Severidad" value={SEVERITY_LABEL[selected.severity]} />
                 <DetailCell label="Estado" value={STATUS_LABEL[selected.status]} />
                 {/* A ancho completo: la marca de tiempo forense lleva fecha, hora
@@ -255,10 +325,10 @@ export function IncidentSpotlight({
 
               <Link
                 href={`/incidents/${selected.id}`}
-                className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-surface px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+                className="relative mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface px-4 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary-bright"
               >
                 Abrir incidente
-                <ArrowUpRight className="h-4 w-4" aria-hidden />
+                <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
               </Link>
             </article>
           ) : null}

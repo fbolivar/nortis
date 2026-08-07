@@ -5,7 +5,7 @@
 /*
  * Nortis usa UN SOLO tema, claro. No hay conmutador claro/oscuro.
  *
- * El fondo es lavanda y no blanco puro: las tarjetas de contenido SI son blancas,
+ * El fondo es azul-gris y no blanco puro: las tarjetas de contenido SI son blancas,
  * y esa diferencia de un par de puntos de luminosidad es lo que hace que cada
  * tarjeta se lea como una unidad separada sin necesidad de dibujar un borde duro
  * alrededor. Con fondo blanco, las tarjetas blancas desaparecen y hay que
@@ -18,39 +18,72 @@
  */
 @layer base {
   :root {
-    /* Lavanda muy desaturada. Es el lienzo, nunca compite con el contenido. */
-    --background: 252 44% 96%;
-    --foreground: 252 28% 14%;
+    /*
+     * Lienzo azul-gris muy claro, derivado del azul marino del logo bajando la
+     * saturacion casi al limite. Nunca compite con el contenido.
+     */
+    --background: 218 32% 96%;
+    --foreground: 218 34% 13%;
 
     /* Superficie de tarjeta: blanco puro, el escalon por encima del lienzo. */
     --surface: 0 0% 100%;
-    --surface-muted: 252 44% 98%;
+    --surface-muted: 218 40% 98%;
 
-    --muted: 252 36% 95%;
-    --muted-foreground: 252 10% 44%;
+    --muted: 218 28% 95%;
+    --muted-foreground: 218 12% 42%;
 
-    --border: 252 30% 91%;
+    --border: 218 24% 90%;
     --input: 0 0% 100%;
-    --ring: 258 86% 66%;
+    /*
+     * Anillo de foco. Azul MAS LUMINOSO que el primario a proposito: el foco
+     * cae muchas veces sobre el propio boton primario (azul marino) y un
+     * anillo del mismo tono seria invisible. Este da 3.3:1 contra `--primary`
+     * y 3.5:1 contra blanco, asi que se ve en ambos fondos.
+     */
+    --ring: 211 92% 55%;
 
     /*
-     * Violeta de marca. Es el UNICO acento decorativo del sistema y esta
-     * reservado a la accion principal, al estado activo de navegacion y a la
-     * serie unica de las graficas. No se usa para comunicar severidad.
+     * Azul marino del logo (#1f3864). Es el acento de marca y esta reservado a
+     * la accion principal, al estado activo de navegacion y a la serie unica de
+     * las graficas. No se usa para comunicar severidad. Blanco encima da 11.6:1.
      */
-    --primary: 258 84% 60%;
+    --primary: 218 53% 26%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 258 90% 96%;
+    --primary-subtle: 218 60% 95%;
+    /*
+     * Azul intermedio de la misma familia. Existe para los bloques que van
+     * ENCIMA de `--ink`: el primario sobre tinta da 1.5:1 y las dos superficies
+     * se funden. Este da 3.0:1 contra `--ink` (separacion de superficies) y
+     * 5.8:1 con texto blanco encima.
+     */
+    --primary-bright: 218 56% 46%;
+    --primary-bright-foreground: 0 0% 100%;
 
     /*
-     * Tinta: el casi-negro violaceo de la pastilla de navegacion y de los
-     * bloques invertidos. No es #000 — un negro absoluto sobre lavanda vibra.
+     * Cian de la aguja de la brujula (#00e5ff).
+     *
+     * REGLA DURA: sobre blanco da 1.5:1. NO puede llevar texto ni ser el relleno
+     * de nada informativo sobre fondo claro. Se usa solo sobre superficies
+     * oscuras (tinta o azul intermedio) y como detalle grafico.
+     *
+     * `--accent-strong` es la version oscurecida —misma familia, luminosidad
+     * bajada— para cuando hace falta cian en TEXTO o en una grafica sobre
+     * blanco: 5.2:1 contra blanco.
      */
-    --ink: 252 30% 12%;
-    --ink-foreground: 252 20% 92%;
-    --ink-muted: 252 12% 62%;
+    --accent: 186 100% 50%;
+    --accent-foreground: 218 45% 11%;
+    --accent-strong: 190 100% 28%;
+    --accent-subtle: 186 78% 94%;
 
-    /* --- Estados. Unico uso legitimo del color fuera del violeta de marca. ---
+    /*
+     * Tinta: el casi-negro azul marino de la pastilla de navegacion y de los
+     * bloques invertidos. No es #000 — un negro absoluto sobre el lienzo vibra.
+     */
+    --ink: 218 45% 11%;
+    --ink-foreground: 218 25% 92%;
+    --ink-muted: 218 14% 64%;
+
+    /* --- Estados. Unico uso legitimo del color fuera del azul de marca. ---
        Todos los tonos solidos superan 4.5:1 sobre blanco; los `subtle` son el
        fondo de la pastilla con el tono solido encima. */
     --critical: 0 72% 45%;
@@ -79,29 +112,35 @@
      * indistinguible de alguno existente para un lector con deficiencia de
      * color.
      *
-     * chart-1 es el violeta de marca porque es el color de la serie unica, que
-     * es el caso mayoritario. Los cinco restantes solo aparecen cuando hay
+     * chart-1 es el azul marino de marca porque es el color de la serie unica,
+     * que es el caso mayoritario. Los cinco restantes solo aparecen cuando hay
      * categorias que distinguir.
+     *
+     * chart-3 es el cian de la brujula OSCURECIDO (5.4:1 sobre blanco). El cian
+     * puro del logo se queda en 1.5:1 y desapareceria como linea o como sector.
+     *
+     * El orden evita poner los dos azules (marino y cian) en posiciones
+     * adyacentes: entre ellos va el naranja quemado, que es su complementario.
      *
      * Son independientes de los colores de estado (critical/warning/success):
      * en esta consola el color de estado SIGNIFICA severidad, y reutilizarlo
      * como "serie 4" destruiria ese significado.
      */
-    --chart-1: #6d4aff;
+    --chart-1: #1f3864;
     --chart-2: #c2410c;
-    --chart-3: #047857;
-    --chart-4: #2563eb;
-    --chart-5: #be185d;
+    --chart-3: #0e7490;
+    --chart-4: #be185d;
+    --chart-5: #047857;
     --chart-6: #a16207;
 
     /* Rejilla y ejes: una sola sombra por debajo de la superficie, solidos. */
-    --chart-grid: 252 30% 89%;
+    --chart-grid: 218 26% 89%;
 
     /*
      * Marco de la aplicacion.
      *
      * La consola entera vive dentro de UNA tarjeta blanca que flota sobre el
-     * lienzo lavanda. `--shell-gutter` es el aire que queda entre esa tarjeta y
+     * lienzo azul-gris. `--shell-gutter` es el aire que queda entre esa tarjeta y
      * el borde de la ventana, y `--shell-radius` el redondeo de sus esquinas.
      *
      * Son variables y no clases de Tailwind porque el mismo valor tiene que
@@ -158,7 +197,7 @@
 
 @layer components {
   /*
-   * Lienzo. Centra el marco y le deja el aire lavanda alrededor, respetando las
+   * Lienzo. Centra el marco y le deja el aire azul-gris alrededor, respetando las
    * areas seguras de iOS cuando la consola corre instalada como PWA.
    */
   .app-frame {
@@ -172,7 +211,7 @@
     @apply relative bg-surface shadow-lifted;
     border-radius: var(--shell-radius);
     /* Llega siempre al borde inferior de la ventana. Sin esto, una pagina corta
-       deja la tarjeta flotando a media altura con un mar de lavanda debajo, que
+       deja la tarjeta flotando a media altura con un mar de lienzo debajo, que
        se lee como contenido que no cargo. `svh` y no `vh`: en movil la barra de
        direcciones retraible haria que la tarjeta sobresaliera. */
     min-height: calc(
@@ -184,7 +223,7 @@
    * Encabezado pegajoso DENTRO de la tarjeta.
    *
    * Se detiene en el borde superior de la tarjeta —no en el de la ventana— para
-   * que el aire lavanda siga viendose por encima mientras se hace scroll. Repite
+   * que el aire azul-gris siga viendose por encima mientras se hace scroll. Repite
    * el radio de la tarjeta en sus esquinas superiores: sin eso, al quedar fijo
    * taparia el redondeo con un rectangulo blanco.
    */
@@ -224,12 +263,84 @@
   .page-body {
     @apply shell-container pb-12 pt-1;
   }
+
+  /*
+   * Rejilla tenue para los bloques de tinta.
+   *
+   * Da profundidad al unico bloque oscuro de la consola sin meter una imagen ni
+   * un degradado que compita con el contenido. El paso de 44px y la opacidad de
+   * 4% estan calibrados para que la trama se INTUYA y no se cuente: a partir de
+   * ~7% las lineas empiezan a leerse como separadores de una tabla que no
+   * existe, y el texto blanco encima pierde nitidez.
+   */
+  .mesh-grid {
+    background-image:
+      linear-gradient(hsl(var(--ink-foreground) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--ink-foreground) / 0.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  /*
+   * Halo cian en la esquina superior del bloque de tinta.
+   *
+   * Es la unica licencia decorativa que se permite al cian de la aguja sobre
+   * superficie oscura, donde SI tiene contraste. Va en un pseudo-elemento con
+   * `pointer-events: none` para no interceptar los clics de la cola de
+   * incidentes que vive debajo. Exige `relative` y `overflow-hidden` en el
+   * contenedor.
+   */
+  .ink-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* Por debajo del contenido, que va en z-10. Sin esto el pseudo-elemento
+       —posicionado y ultimo en el arbol— pintaria ENCIMA del texto y le echaria
+       un velo cian que le quita contraste justo donde mas se lee. */
+    z-index: 0;
+    background: radial-gradient(
+      120% 78% at 10% 0%,
+      hsl(var(--accent) / 0.12),
+      transparent 58%
+    );
+  }
 }
 
 @layer utilities {
   /* Rutas de archivo, hashes y fingerprints. Truncado con el inicio visible. */
   .forensic {
     @apply font-mono text-xs text-muted-foreground;
+  }
+
+  /*
+   * Barra de scroll para listas dentro de los bloques de tinta.
+   *
+   * La nativa de Windows es una franja clara de 17px: sobre el bloque oscuro se
+   * lee como un elemento de interfaz ajeno pegado a la cola de incidentes. Se
+   * declaran las dos sintaxis porque ninguna cubre todos los navegadores:
+   * `scrollbar-*` es el estandar (Firefox y Chrome moderno) y `::-webkit-` cubre
+   * Safari, que aun no implementa el estandar.
+   */
+  .scroll-ink {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--ink-foreground) / 0.24) transparent;
+  }
+
+  .scroll-ink::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scroll-ink::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-ink::-webkit-scrollbar-thumb {
+    background: hsl(var(--ink-foreground) / 0.24);
+    border-radius: 9999px;
+  }
+
+  .scroll-ink::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--ink-foreground) / 0.4);
   }
 
   .pb-safe {
