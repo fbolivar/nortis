@@ -23,7 +23,7 @@ import {
 import { EventTypeBadge, describeEvent } from '@/features/telemetry/components/event-row'
 import { EventTypeFilter } from '@/features/telemetry/components/event-type-filter'
 import { EVENT_TYPE_LABEL, type TelemetryEventType } from '@/shared/schemas/telemetry'
-import type { EventType } from '@/shared/types/database'
+import { ENDPOINT_COLUMNS, type EventType } from '@/shared/types/database'
 
 const TIMELINE_LIMIT = 100
 
@@ -40,7 +40,7 @@ export default async function EndpointDetailPage({
 
   const { data: endpoint } = await supabase
     .from('endpoints')
-    .select('*, security_profiles(id, name)')
+    .select(`${ENDPOINT_COLUMNS}, security_profiles(id, name)`)
     .eq('id', id)
     .maybeSingle()
 

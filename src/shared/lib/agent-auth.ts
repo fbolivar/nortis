@@ -3,7 +3,7 @@ import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { ZodType } from 'zod'
-import { agentApiKey } from '@/shared/schemas/agent-api'
+import { agentApiKey, agentEndpointCredential } from '@/shared/schemas/agent-api'
 import type { Database } from '@/shared/types/database'
 
 /**
@@ -27,7 +27,8 @@ function agentClient() {
 }
 
 export interface AgentContext {
-  apiKey: string
+  /** `nrt_live_…` en el alta, `nrt_ep_…` en el resto de rutas. */
+  credential: string
   client: ReturnType<typeof agentClient>
 }
 
@@ -69,11 +70,24 @@ export function mapPostgresError(error: { code?: string; message: string }) {
  * logs de acceso de cualquier proxy, y la credencial de un agente da acceso de
  * escritura a la telemetria de todo un tenant.
  */
-export function extractApiKey(request: Request): string | null {
+export function extractApiKey(
+  request: Request,
+  /**
+   * Que credencial admite esta ruta. `organization` solo en el alta; el resto de
+   * la superficie exige la del equipo.
+   *
+   * Se comprueba aqui, por formato, antes de tocar la base: presentar la clave
+   * del tenant en /events debe fallar por contrato, no por que la base no
+   * encuentre el hash. Ese error acabaria mezclado con "credencial revocada" y
+   * mandaria a depurar al sitio equivocado.
+   */
+  kind: 'organization' | 'endpoint' = 'endpoint'
+): string | null {
   const header = request.headers.get('authorization')
   if (!header?.startsWith('Bearer ')) return null
 
-  const parsed = agentApiKey.safeParse(header.slice(7).trim())
+  const schema = kind === 'organization' ? agentApiKey : agentEndpointCredential
+  const parsed = schema.safeParse(header.slice(7).trim())
   return parsed.success ? parsed.data : null
 }
 
@@ -81,11 +95,18 @@ export function extractApiKey(request: Request): string | null {
 export async function withAgentRequest<T>(
   request: Request,
   schema: ZodType<T>,
-  handler: (body: T, context: AgentContext) => Promise<NextResponse>
+  handler: (body: T, context: AgentContext) => Promise<NextResponse>,
+  credentialKind: 'organization' | 'endpoint' = 'endpoint'
 ): Promise<NextResponse> {
-  const apiKey = extractApiKey(request)
+  const apiKey = extractApiKey(request, credentialKind)
   if (!apiKey) {
-    return agentError(401, 'unauthorized', 'Falta el encabezado Authorization: Bearer')
+    return agentError(
+      401,
+      'unauthorized',
+      credentialKind === 'organization'
+        ? 'Falta la credencial de organizacion (Authorization: Bearer nrt_live_…)'
+        : 'Falta la credencial del equipo (Authorization: Bearer nrt_ep_…)'
+    )
   }
 
   let raw: unknown
@@ -105,7 +126,7 @@ export async function withAgentRequest<T>(
   }
 
   try {
-    return await handler(parsed.data, { apiKey, client: agentClient() })
+    return await handler(parsed.data, { credential: apiKey, client: agentClient() })
   } catch (e) {
     console.error('[api/agent] excepcion no controlada', e)
     return agentError(500, 'internal_error', 'Error interno')

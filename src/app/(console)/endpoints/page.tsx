@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Clock, ShieldAlert, Wifi, WifiOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { ENDPOINT_COLUMNS } from '@/shared/types/database'
 import { PageHeader } from '@/shared/components/console-shell'
 import { StatTile } from '@/shared/components/stat-tile'
 import {
@@ -28,7 +29,7 @@ export default async function EndpointsPage() {
 
   const { data, error } = await supabase
     .from('endpoints')
-    .select('*, security_profiles(id, name)')
+    .select(`${ENDPOINT_COLUMNS}, security_profiles(id, name)`)
     .order('hostname')
 
   if (error) {

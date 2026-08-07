@@ -62,6 +62,8 @@ export type Database = {
       }
       activity_events: {
         Row: {
+          /** Nulo en los datos sembrados; obligatorio para todo lo que entra por la API. */
+          client_event_id: string | null
           endpoint_id: string
           event_type: Database['public']['Enums']['event_type']
           id: string
@@ -71,6 +73,7 @@ export type Database = {
           payload: Json
         }
         Insert: {
+          client_event_id?: string | null
           endpoint_id: string
           event_type: Database['public']['Enums']['event_type']
           id?: string
@@ -80,6 +83,7 @@ export type Database = {
           payload?: Json
         }
         Update: {
+          client_event_id?: string | null
           endpoint_id?: string
           event_type?: Database['public']['Enums']['event_type']
           id?: string
@@ -317,9 +321,18 @@ export type Database = {
       }
       endpoints: {
         Row: {
+          /**
+           * SHA-256 de la credencial del equipo. NUNCA se selecciona desde la
+           * consola: no hace falta para nada de la interfaz, y una columna que
+           * no se lee no se puede filtrar por accidente en un `select *`.
+           */
+          agent_credential_hash: string | null
+          agent_credential_issued_at: string | null
           agent_version: string | null
           assigned_profile_id: string | null
           created_at: string
+          /** Con que API key se dio de alta. Trazabilidad si una clave se filtra. */
+          enrolled_with_api_key_id: string | null
           enrolled_at: string
           hostname: string
           id: string
@@ -537,14 +550,25 @@ export type Database = {
           p_agent_version?: string | null
           p_user?: string | null
         }
-        Returns: { endpoint_id: string; profile_id: string | null; organization_id: string }[]
+        /**
+         * `agent_credential` es la credencial propia del equipo y viaja en claro
+         * UNA sola vez, aqui. Las otras tres funciones ya no aceptan la API key
+         * de la organizacion.
+         */
+        Returns: {
+          endpoint_id: string
+          profile_id: string | null
+          organization_id: string
+          agent_credential: string
+        }[]
       }
       agent_ingest: {
-        Args: { p_api_key: string; p_endpoint_id: string; p_events: Json }
-        Returns: { accepted: number; rejected: number }[]
+        Args: { p_credential: string; p_endpoint_id: string; p_events: Json }
+        /** `duplicates` va incluido en `accepted`; se informa aparte para diagnostico. */
+        Returns: { accepted: number; rejected: number; duplicates: number }[]
       }
       agent_policy: {
-        Args: { p_api_key: string; p_endpoint_id: string }
+        Args: { p_credential: string; p_endpoint_id: string }
         Returns: {
           profile_id: string
           profile_name: string
@@ -556,7 +580,7 @@ export type Database = {
       }
       agent_heartbeat: {
         Args: {
-          p_api_key: string
+          p_credential: string
           p_endpoint_id: string
           p_agent_version?: string | null
           p_user?: string | null
@@ -747,6 +771,22 @@ export type ConsoleUser = Tables<'users'>
 export type SecurityProfile = Tables<'security_profiles'>
 export type Endpoint = Tables<'endpoints'>
 export type ActivityEvent = Tables<'activity_events'>
+
+/**
+ * Columnas de `endpoints` legibles desde la consola.
+ *
+ * `authenticated` NO tiene permiso sobre `agent_credential_hash`, asi que un
+ * `select('*')` falla la consulta ENTERA con un error de permisos que no señala
+ * la columna culpable. Se centraliza aqui para no repetir la lista en cada
+ * pagina y para que añadir una columna nueva sea un solo cambio.
+ *
+ * Es el mismo patron que ya obliga `invitations.token_hash`: el material
+ * criptografico no se entrega a la interfaz, ni siquiera hasheado.
+ */
+export const ENDPOINT_COLUMNS =
+  'id, organization_id, hostname, machine_fingerprint, os_version, agent_version, ' +
+  'last_logged_user, status, last_seen_at, assigned_profile_id, policy_applied_at, ' +
+  'enrolled_at, created_at, updated_at, enrolled_with_api_key_id, agent_credential_issued_at'
 export type DlpIncident = Tables<'dlp_incidents'>
 export type EncryptedDocument = Tables<'encrypted_documents'>
 export type AuditLogEntry = Tables<'audit_log'>

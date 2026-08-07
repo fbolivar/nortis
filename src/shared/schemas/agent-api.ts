@@ -17,10 +17,30 @@ import { z } from 'zod'
  * la base de datos y estan repetidos alli.
  */
 
-/** Formato exacto que produce create_api_key: nrt_live_ + 64 hex. */
+/**
+ * DOS CREDENCIALES DISTINTAS, CON PROPOSITOS DISTINTOS
+ * ----------------------------------------------------------------------------
+ * `nrt_live_` es la API key del TENANT y solo sirve para dar de alta un equipo.
+ * `nrt_ep_` es la credencial del EQUIPO, que devuelve el enrolamiento una sola
+ * vez y con la que se hace todo lo demas.
+ *
+ * La separacion existe porque antes la clave del tenant vivia en cada portatil
+ * de la flota: quien extrajera la de un solo equipo podia falsear telemetria de
+ * cualquier otro. Con esto, el instalador puede borrar la clave del tenant en
+ * cuanto termina el alta, y perder un portatil no obliga a rotar la credencial
+ * de los otros doscientos.
+ *
+ * Los prefijos son distintos a proposito: una no puede usarse en lugar de la
+ * otra ni por accidente, y el error lo dice el propio formato antes de tocar la
+ * base.
+ */
 export const agentApiKey = z
   .string()
-  .regex(/^nrt_live_[0-9a-f]{64}$/, 'Credencial con formato invalido')
+  .regex(/^nrt_live_[0-9a-f]{64}$/, 'Credencial de organizacion con formato invalido')
+
+export const agentEndpointCredential = z
+  .string()
+  .regex(/^nrt_ep_[0-9a-f]{64}$/, 'Credencial de equipo con formato invalido')
 
 const uuid = z.string().uuid('Identificador invalido')
 
@@ -46,6 +66,20 @@ export const ingestRequestSchema = z.object({
       z.object({
         event_type: z.string().min(1).max(64),
         occurred_at: z.string().datetime({ offset: true }),
+        /**
+         * Identificador de deduplicacion. Lo genera el agente UNA vez por evento
+         * y lo conserva entre reintentos.
+         *
+         * Es obligatorio. Sin el, un lote confirmado por el servidor cuya
+         * respuesta se pierde —timeout, cambio de red— se reinserta entero al
+         * reintentar: eventos duplicados e incidentes DLP repetidos. Con
+         * portatiles y conectividad intermitente ese es el caso normal.
+         *
+         * La base lo trata como opcional (columna nullable) porque los datos
+         * sembrados por demo_telemetry.sql no lo llevan; para todo lo que entre
+         * por esta API, se exige aqui.
+         */
+        client_event_id: uuid,
         payload: z.record(z.string(), z.unknown()).optional(),
       })
     )

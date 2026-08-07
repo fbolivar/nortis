@@ -69,10 +69,14 @@ export default async function DashboardPage() {
     topApps,
     topDomains,
   ] = await Promise.all([
-    supabase.from('endpoints').select('*', { count: 'exact', head: true }),
+    // `select('id')` y no `select('*')` en los conteos: `authenticated` no tiene
+    // permiso sobre agent_credential_hash, y pedir la tabla entera —aunque sea
+    // solo para contar— falla con un error de permisos que no dice que columna
+    // lo provoco.
+    supabase.from('endpoints').select('id', { count: 'exact', head: true }),
     supabase
       .from('endpoints')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .gte('last_seen_at', staleSince),
     supabase
       .from('dlp_incidents')
@@ -80,7 +84,7 @@ export default async function DashboardPage() {
       .eq('status', 'open'),
     supabase
       .from('endpoints')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .is('assigned_profile_id', null),
     // Sin filtro de estado: el panel maestro-detalle tiene su propia pestaña de
     // "Abiertos", y filtrar en la consulta dejaria esa pestaña sin alternativa.

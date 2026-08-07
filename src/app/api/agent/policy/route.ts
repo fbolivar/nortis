@@ -11,9 +11,9 @@ import { POLICY_SCHEMA_VERSION } from '@/shared/schemas/policy'
  * siquiera recibe la instruccion de activarlos.
  */
 export async function POST(request: Request) {
-  return withAgentRequest(request, policyRequestSchema, async (body, { apiKey, client }) => {
+  return withAgentRequest(request, policyRequestSchema, async (body, { credential, client }) => {
     const { data, error } = await client.rpc('agent_policy', {
-      p_api_key: apiKey,
+      p_credential: credential,
       p_endpoint_id: body.endpoint_id,
     })
 
