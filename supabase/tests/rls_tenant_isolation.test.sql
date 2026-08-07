@@ -22,7 +22,11 @@ begin;
 create extension if not exists pgtap with schema extensions;
 create schema if not exists tests;
 
-select plan(17);
+-- 18, no 17: el archivo declaraba un plan que no coincidia con el numero de
+-- comprobaciones. pgTAP lo reporta como "Bad plan", que es su forma de decir
+-- "alguien añadio una prueba y no actualizo la cuenta" — o, como aquí, que la
+-- suite nunca se habia ejecutado entera.
+select plan(18);
 
 -- -----------------------------------------------------------------------------
 -- Fixture: dos tenants completamente separados
@@ -233,10 +237,27 @@ select is(
   'particiones: ninguna particion existente tiene RLS deshabilitado'
 );
 
-select ok(
+-- La particion se crea ANTES de consultar el catalogo, en su propia sentencia.
+--
+-- La version anterior invocaba a create_activity_events_partition() dentro del
+-- WHERE del mismo SELECT que recorre pg_class, y eso no puede funcionar: el
+-- escaneo del catalogo trabaja sobre una instantanea tomada al empezar la
+-- sentencia, asi que la fila de la tabla que la propia funcion acaba de crear no
+-- es visible para el. La comprobacion daba NULL siempre, dijera lo que dijera la
+-- realidad — es decir, nunca comprobo nada.
+create temporary table particion_recien_creada on commit drop as
+  select public.create_activity_events_partition((now() + interval '13 months')::date) as nombre;
+
+-- `is(..., true, ...)` y no `ok(...)`: ante un fallo, pgTAP imprime el valor
+-- obtenido y el esperado. Con ok() el diagnostico se queda en "was NULL", que
+-- fue exactamente lo que costo entender la primera vez.
+select is(
   (select c.relrowsecurity
      from pg_class c
-    where c.relname = public.create_activity_events_partition((now() + interval '13 months')::date)),
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relname = (select nombre from particion_recien_creada)),
+  true,
   'particiones: una particion recien creada nace con RLS habilitado'
 );
 
