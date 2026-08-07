@@ -162,6 +162,55 @@ export const USB_MODE_HELP: Record<z.infer<typeof enforcementMode>, string> = {
   block: 'El volumen no llega a montarse. Maxima proteccion, mayor friccion.',
 }
 
+/**
+ * QUE CONTROLES PREVIENEN DE VERDAD Y CUALES SOLO AVISAN
+ * ============================================================================
+ *
+ * El agente corre en modo usuario. Eso no es una decision de producto: meterlo
+ * en modo kernel exige un driver con certificado EV mas atestacion de Microsoft,
+ * y un fallo ahi es una pantalla azul en el equipo del cliente.
+ *
+ * La consecuencia es que no todos los modos que este editor ofrece se pueden
+ * cumplir, y el editor TIENE que decirlo. Un administrador que configura
+ * "bloquear" y ve el equipo como cubierto esta confiando en una proteccion que
+ * no existe; se enterara el dia que alguien se lleve la informacion, que es el
+ * peor momento posible para descubrirlo.
+ *
+ * Esta tabla es la fuente unica de esa verdad. Si un canal gana prevencion real
+ * —por ejemplo con un driver de sistema de archivos— se cambia aqui y la
+ * interfaz entera deja de avisar sola.
+ */
+export type NivelDeAplicacion = 'previene' | 'mitiga' | 'solo_registra'
+
+export const APLICACION_POR_CANAL: Record<
+  'usb' | 'web' | 'clipboard' | 'printing' | 'storage',
+  { nivel: NivelDeAplicacion; nota?: string }
+> = {
+  usb: { nivel: 'previene' },
+  web: {
+    nivel: 'previene',
+    nota: 'El agente desactiva DNS-over-HTTPS en Edge y Chrome; sin eso el navegador resolveria por su cuenta y saltaria el bloqueo. La lista blanca de dominios no se puede imponer y queda solo como alerta.',
+  },
+  clipboard: {
+    nivel: 'mitiga',
+    nota: 'Windows no ofrece forma de impedir una copia. El agente vacia el portapapeles justo despues, lo que corta el caso normal —copiar aqui y pegar alla— pero deja una ventana de una fraccion de segundo.',
+  },
+  printing: {
+    nivel: 'mitiga',
+    nota: 'El trabajo se cancela en cuanto entra en la cola. Un documento largo se corta casi entero, pero uno de una pagina puede alcanzar a salir.',
+  },
+  storage: {
+    nivel: 'solo_registra',
+    nota: 'Impedir un guardado exige un driver en modo kernel. El agente DETECTA el archivo despues de escrito y abre el incidente, pero no evita la escritura.',
+  },
+}
+
+export const NIVEL_LABEL: Record<NivelDeAplicacion, string> = {
+  previene: 'Previene',
+  mitiga: 'Mitiga',
+  solo_registra: 'Solo registra',
+}
+
 export const CLIPBOARD_MODE_LABEL: Record<z.infer<typeof clipboardMode>, string> = {
   allow: 'Permitir',
   alert: 'Alertar',
@@ -171,7 +220,8 @@ export const CLIPBOARD_MODE_LABEL: Record<z.infer<typeof clipboardMode>, string>
 export const CLIPBOARD_MODE_HELP: Record<z.infer<typeof clipboardMode>, string> = {
   allow: 'No se registra ni se interviene el portapapeles.',
   alert: 'Se registra un incidente pero la copia se completa. Util para medir antes de bloquear.',
-  block: 'La copia se cancela. Puede romper flujos de trabajo legitimos.',
+  block:
+    'El portapapeles se vacia inmediatamente despues de copiar. Corta el caso normal, pero no es prevencion: queda una fraccion de segundo en la que un pegado muy rapido llega antes.',
 }
 
 export const PRINTING_MODE_LABEL: Record<z.infer<typeof printingMode>, string> = {
@@ -183,5 +233,6 @@ export const PRINTING_MODE_LABEL: Record<z.infer<typeof printingMode>, string> =
 export const PRINTING_MODE_HELP: Record<z.infer<typeof printingMode>, string> = {
   allow: 'No se registran los trabajos de impresion.',
   log: 'Se registra que se imprimio, cuantas paginas y desde que equipo.',
-  block: 'No se puede imprimir desde el equipo.',
+  block:
+    'El trabajo se cancela en cuanto entra en la cola. Un documento largo se corta casi entero, pero uno de una pagina puede alcanzar a salir.',
 }
