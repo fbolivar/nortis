@@ -174,7 +174,7 @@ export function MfaSetup({
             Escanee el codigo con su aplicacion de autenticacion.
           </p>
 
-          <div className="flex justify-center rounded-md border border-border bg-white p-3">
+          <div className="flex justify-center rounded-2xl border border-border bg-white p-4">
             {/*
               <img> y no next/image: qr_code es un data URI SVG en linea que
               genera Supabase. next/image lanza un error de runtime con SVG en
@@ -188,7 +188,7 @@ export function MfaSetup({
           {secret ? (
             <div>
               <Label>Clave manual</Label>
-              <code className="block break-all rounded-md border border-border bg-surface-muted px-2 py-1.5 font-mono text-xs">
+              <code className="block break-all rounded-xl border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
                 {secret}
               </code>
             </div>

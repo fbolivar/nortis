@@ -3,73 +3,132 @@
 @tailwind utilities;
 
 /*
- * Nortis usa UN SOLO tema, oscuro. No hay conmutador claro/oscuro.
+ * Nortis usa UN SOLO tema, claro. No hay conmutador claro/oscuro.
  *
- * No es una preferencia estetica: el usuario de esta consola es un analista que
- * la deja abierta durante toda la jornada. Mantener un unico tema tambien
- * garantiza que los colores de severidad conserven exactamente el mismo
- * contraste siempre — rojo critico sobre fondo claro y sobre fondo oscuro no se
- * perciben con la misma urgencia, y aqui esa percepcion es funcional.
+ * El fondo es lavanda y no blanco puro: las tarjetas de contenido SI son blancas,
+ * y esa diferencia de un par de puntos de luminosidad es lo que hace que cada
+ * tarjeta se lea como una unidad separada sin necesidad de dibujar un borde duro
+ * alrededor. Con fondo blanco, las tarjetas blancas desaparecen y hay que
+ * recuperar la separacion con bordes, que ensucian una pantalla densa.
+ *
+ * Mantener un unico tema garantiza ademas que los colores de severidad conserven
+ * exactamente el mismo contraste siempre — rojo critico sobre fondo claro y sobre
+ * fondo oscuro no se perciben con la misma urgencia, y aqui esa percepcion es
+ * funcional.
  */
 @layer base {
   :root {
-    --background: 220 18% 7%;
-    --foreground: 210 15% 92%;
+    /* Lavanda muy desaturada. Es el lienzo, nunca compite con el contenido. */
+    --background: 252 44% 96%;
+    --foreground: 252 28% 14%;
 
-    --surface: 220 16% 10%;
-    --surface-muted: 220 15% 13%;
+    /* Superficie de tarjeta: blanco puro, el escalon por encima del lienzo. */
+    --surface: 0 0% 100%;
+    --surface-muted: 252 44% 98%;
 
-    --muted: 220 14% 16%;
-    --muted-foreground: 218 10% 62%;
+    --muted: 252 36% 95%;
+    --muted-foreground: 252 10% 44%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 16%;
-    --ring: 213 90% 60%;
-
-    /* Primario neutro a proposito: la accion principal no compite con los
-       indicadores de severidad. */
-    --primary: 210 14% 88%;
-    --primary-foreground: 220 18% 9%;
-
-    --critical: 0 72% 58%;
-    --critical-foreground: 0 0% 100%;
-    --critical-subtle: 0 60% 16%;
-
-    --warning: 38 92% 55%;
-    --warning-foreground: 30 40% 10%;
-    --warning-subtle: 36 70% 14%;
-
-    --success: 152 55% 45%;
-    --success-foreground: 155 45% 8%;
-    --success-subtle: 152 45% 12%;
-
-    --info: 213 85% 62%;
-    --info-foreground: 0 0% 100%;
-    --info-subtle: 213 60% 16%;
+    --border: 252 30% 91%;
+    --input: 0 0% 100%;
+    --ring: 258 86% 66%;
 
     /*
-     * Paleta de graficas — pasos elegidos para superficie oscura.
+     * Violeta de marca. Es el UNICO acento decorativo del sistema y esta
+     * reservado a la accion principal, al estado activo de navegacion y a la
+     * serie unica de las graficas. No se usa para comunicar severidad.
+     */
+    --primary: 258 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-subtle: 258 90% 96%;
+
+    /*
+     * Tinta: el casi-negro violaceo de la pastilla de navegacion y de los
+     * bloques invertidos. No es #000 — un negro absoluto sobre lavanda vibra.
+     */
+    --ink: 252 30% 12%;
+    --ink-foreground: 252 20% 92%;
+    --ink-muted: 252 12% 62%;
+
+    /* --- Estados. Unico uso legitimo del color fuera del violeta de marca. ---
+       Todos los tonos solidos superan 4.5:1 sobre blanco; los `subtle` son el
+       fondo de la pastilla con el tono solido encima. */
+    --critical: 0 72% 45%;
+    --critical-foreground: 0 0% 100%;
+    --critical-subtle: 0 84% 96%;
+
+    --warning: 26 88% 38%;
+    --warning-foreground: 0 0% 100%;
+    --warning-subtle: 36 96% 93%;
+
+    --success: 158 74% 26%;
+    --success-foreground: 0 0% 100%;
+    --success-subtle: 154 60% 93%;
+
+    --info: 222 76% 52%;
+    --info-foreground: 0 0% 100%;
+    --info-subtle: 220 92% 96%;
+
+    /*
+     * Paleta de graficas — pasos elegidos para superficie BLANCA.
      *
-     * Validada contra la superficie real de Nortis (#15181d): banda de
-     * luminosidad, piso de croma, separacion para daltonismo (peor par adyacente
-     * ΔE 8.4 protan), piso de vision normal (ΔE 19.3) y contraste >= 3:1.
-     * NO se reordenan ni se generan tonos nuevos: el orden es el que hace pasar
-     * las comprobaciones, y un septimo tono generado seria indistinguible de
-     * alguno existente para un lector con deficiencia de color.
+     * Cada tono supera 3:1 contra #ffffff (minimo para elementos graficos, WCAG
+     * 1.4.11) y el orden es el que maximiza la separacion entre pares
+     * ADYACENTES, que son los que se comparan de verdad en una leyenda o en un
+     * donut. No se reordenan ni se generan tonos nuevos: un septimo tono seria
+     * indistinguible de alguno existente para un lector con deficiencia de
+     * color.
+     *
+     * chart-1 es el violeta de marca porque es el color de la serie unica, que
+     * es el caso mayoritario. Los cinco restantes solo aparecen cuando hay
+     * categorias que distinguir.
      *
      * Son independientes de los colores de estado (critical/warning/success):
      * en esta consola el color de estado SIGNIFICA severidad, y reutilizarlo
      * como "serie 4" destruiria ese significado.
      */
-    --chart-1: #3987e5;
-    --chart-2: #d95926;
-    --chart-3: #199e70;
-    --chart-4: #c98500;
-    --chart-5: #d55181;
-    --chart-6: #008300;
+    --chart-1: #6d4aff;
+    --chart-2: #c2410c;
+    --chart-3: #047857;
+    --chart-4: #2563eb;
+    --chart-5: #be185d;
+    --chart-6: #a16207;
 
-    /* Rejilla y ejes: una sola sombra por encima de la superficie, solidos. */
-    --chart-grid: 220 14% 18%;
+    /* Rejilla y ejes: una sola sombra por debajo de la superficie, solidos. */
+    --chart-grid: 252 30% 89%;
+
+    /*
+     * Marco de la aplicacion.
+     *
+     * La consola entera vive dentro de UNA tarjeta blanca que flota sobre el
+     * lienzo lavanda. `--shell-gutter` es el aire que queda entre esa tarjeta y
+     * el borde de la ventana, y `--shell-radius` el redondeo de sus esquinas.
+     *
+     * Son variables y no clases de Tailwind porque el mismo valor tiene que
+     * usarse en tres sitios que deben coincidir al pixel: el padding del marco,
+     * el `top` del encabezado pegajoso (que se detiene justo en el borde de la
+     * tarjeta, no en el de la ventana) y el `top` del panel movil. Si divergen,
+     * el encabezado se despega de la tarjeta al hacer scroll y el efecto de
+     * "aplicacion dentro de una tarjeta" se rompe.
+     */
+    --shell-gutter: 0.75rem;
+    --shell-radius: 1.5rem;
+  }
+
+  /* En movil el margen y las esquinas se reducen: con 24px de aire por lado, un
+     telefono de 360px pierde un 13% del ancho util. */
+  @media (min-width: 640px) {
+    :root {
+      --shell-gutter: 1rem;
+      --shell-radius: 1.75rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --shell-gutter: 1.5rem;
+      --shell-radius: 2rem;
+    }
   }
 
   * {
@@ -80,6 +139,7 @@
     @apply bg-background text-foreground;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   /* Cifras alineadas en columnas numericas: sin esto, una tabla de conteos o de
@@ -88,11 +148,95 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Areas seguras de iOS: en la PWA instalada la barra de estado y el indicador
+     de inicio se superponen al documento. */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /*
+   * Lienzo. Centra el marco y le deja el aire lavanda alrededor, respetando las
+   * areas seguras de iOS cuando la consola corre instalada como PWA.
+   */
+  .app-frame {
+    @apply mx-auto w-full max-w-[1440px];
+    padding: calc(env(safe-area-inset-top) + var(--shell-gutter)) var(--shell-gutter)
+      calc(env(safe-area-inset-bottom) + var(--shell-gutter));
+  }
+
+  /* La tarjeta unica que contiene toda la aplicacion. */
+  .app-card {
+    @apply relative bg-surface shadow-lifted;
+    border-radius: var(--shell-radius);
+    /* Llega siempre al borde inferior de la ventana. Sin esto, una pagina corta
+       deja la tarjeta flotando a media altura con un mar de lavanda debajo, que
+       se lee como contenido que no cargo. `svh` y no `vh`: en movil la barra de
+       direcciones retraible haria que la tarjeta sobresaliera. */
+    min-height: calc(
+      100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2 * var(--shell-gutter)
+    );
+  }
+
+  /*
+   * Encabezado pegajoso DENTRO de la tarjeta.
+   *
+   * Se detiene en el borde superior de la tarjeta —no en el de la ventana— para
+   * que el aire lavanda siga viendose por encima mientras se hace scroll. Repite
+   * el radio de la tarjeta en sus esquinas superiores: sin eso, al quedar fijo
+   * taparia el redondeo con un rectangulo blanco.
+   */
+  .app-header {
+    /* Por encima del velo del panel movil (z-40): el boton de cerrar vive en el
+       encabezado y quedaria atenuado y fuera de alcance por debajo. */
+    @apply sticky z-50 bg-surface/95 backdrop-blur-xl;
+    top: calc(env(safe-area-inset-top) + var(--shell-gutter));
+    border-top-left-radius: var(--shell-radius);
+    border-top-right-radius: var(--shell-radius);
+  }
+
+  /*
+   * Panel de navegacion movil. Va `fixed` y no `absolute` dentro de la tarjeta
+   * porque debe aparecer bajo el encabezado sea cual sea el scroll actual.
+   */
+  .app-sheet {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + var(--shell-gutter) + 5rem);
+    left: calc(var(--shell-gutter) + 0.5rem);
+    right: calc(var(--shell-gutter) + 0.5rem);
+  }
+
+  /*
+   * Contenedor horizontal unico del contenido, ya dentro de la tarjeta.
+   *
+   * Vive aqui y no repetido en cada pagina porque los escalones de padding
+   * tienen que coincidir exactamente entre el encabezado y el cuerpo: si
+   * divergen, el titulo de la pagina deja de estar alineado con la primera
+   * tarjeta y se nota de inmediato.
+   */
+  .shell-container {
+    @apply mx-auto w-full px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Cuerpo de pagina. Sustituye al antiguo `p-6` de cada ruta. */
+  .page-body {
+    @apply shell-container pb-12 pt-1;
+  }
 }
 
 @layer utilities {
   /* Rutas de archivo, hashes y fingerprints. Truncado con el inicio visible. */
   .forensic {
     @apply font-mono text-xs text-muted-foreground;
+  }
+
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
   }
 }

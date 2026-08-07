@@ -96,7 +96,7 @@ export function UsersTable({
                 const editable = isOwner && !(isSelf && user.role === 'owner')
 
                 return (
-                  <tr key={user.id} className="hover:bg-surface-muted/50">
+                  <tr key={user.id} className="hover:bg-surface-muted">
                     <Td>
                       <div className="flex flex-col">
                         <span>{user.full_name ?? user.email}</span>
@@ -111,7 +111,7 @@ export function UsersTable({
                           value={user.role}
                           disabled={pendingId === user.id}
                           onChange={(e) => changeRole(user.id, e.target.value as AppRole)}
-                          className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="h-10 rounded-full border border-border bg-surface px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
                         >
                           <option value="owner">Propietario</option>
                           <option value="admin">Administrador</option>

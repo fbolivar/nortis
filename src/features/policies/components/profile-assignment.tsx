@@ -122,7 +122,7 @@ export function ProfileAssignment({
 
                 return (
                   <li key={endpoint.id}>
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-surface-muted">
                       <input
                         type="checkbox"
                         checked={selected.has(endpoint.id)}

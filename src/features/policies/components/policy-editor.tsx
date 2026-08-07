@@ -85,7 +85,7 @@ function ModeSelector<T extends string>({
         {options.map((option) => (
           <label
             key={option}
-            className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-surface-muted/40 px-2.5 py-2 hover:bg-surface-muted"
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface-muted px-3.5 py-3 transition-colors hover:border-primary/40 hover:bg-primary-subtle"
           >
             <input
               type="radio"

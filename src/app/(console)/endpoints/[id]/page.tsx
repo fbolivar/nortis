@@ -89,7 +89,7 @@ export default async function EndpointDetailPage({
         actions={<EndpointStatusBadge status={liveStatus} />}
       />
 
-      <div className="space-y-5 p-6">
+      <div className="page-body space-y-6">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile label="Eventos registrados" value={totalEvents ?? 0} />
           <StatTile
@@ -197,7 +197,7 @@ export default async function EndpointDetailPage({
                 </thead>
                 <tbody>
                   {events.map((event) => (
-                    <tr key={event.id} className="hover:bg-surface-muted/50">
+                    <tr key={event.id} className="hover:bg-surface-muted">
                       <Td className="whitespace-nowrap text-muted-foreground tabular-nums">
                         {formatDateTime(event.occurred_at)}
                       </Td>

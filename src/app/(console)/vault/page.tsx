@@ -27,7 +27,7 @@ export default async function VaultPage() {
     return (
       <>
         <PageHeader title="Cifrado" description="Documentos protegidos" />
-        <div className="p-6">
+        <div className="page-body">
           <Callout tone="critical" title="No se pudieron cargar los documentos">
             {error.message}
           </Callout>
@@ -42,7 +42,7 @@ export default async function VaultPage() {
         title="Cifrado"
         description="Documentos cifrados y envios seguros a terceros"
       />
-      <div className="p-6">
+      <div className="page-body">
         <VaultManager
           documents={(data ?? []) as EncryptedDocument[]}
           organizationId={session.organization.id}

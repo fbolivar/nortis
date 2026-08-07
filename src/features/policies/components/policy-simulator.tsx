@@ -99,11 +99,13 @@ export function PolicySimulator({
               Que habria pasado si este perfil hubiera estado activo
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Envuelve en movil: tres controles en fila fija desbordaban el
+              documento y arrastraban el scroll horizontal a toda la pagina. */}
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value)}
-              className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-10 rounded-full border border-border bg-surface px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
               aria-label="Equipos a simular"
             >
               <option value="">Todos los equipos</option>
@@ -116,7 +118,7 @@ export function PolicySimulator({
             <select
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
-              className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-10 rounded-full border border-border bg-surface px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
               aria-label="Periodo a simular"
             >
               <option value={7}>7 dias</option>
@@ -177,7 +179,7 @@ export function PolicySimulator({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.rule_key} className="hover:bg-surface-muted/50">
+                  <tr key={row.rule_key} className="hover:bg-surface-muted">
                     <Td>{RULE_LABEL[row.rule_key] ?? row.rule_key}</Td>
                     <Td>
                       <Badge tone={actionTone(row.action)}>

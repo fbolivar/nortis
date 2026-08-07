@@ -1,45 +1,53 @@
 import Link from 'next/link'
+import { MonitorSmartphone, ShieldAlert, ShieldOff, Wifi } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionContext } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
 import { StatTile } from '@/shared/components/stat-tile'
-import {
-  Badge,
-  Button,
-  Callout,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  EmptyState,
-  Table,
-  Td,
-  Th,
-} from '@/shared/components/ui'
-import { formatRelative, offlineCutoffISO } from '@/lib/utils'
+import { Button, Callout } from '@/shared/components/ui'
+import { offlineCutoffISO } from '@/lib/utils'
 import {
   ActivityByDayChart,
   ActivityByHourChart,
   CategoryDonutChart,
   RankingChart,
 } from '@/features/telemetry/components/charts'
-import type { IncidentSeverity } from '@/shared/types/database'
+import {
+  IncidentSpotlight,
+  type SpotlightIncident,
+} from '@/features/incidents/components/incident-spotlight'
 
 /** Un equipo sin señal en 15 minutos se considera fuera de linea. */
 const OFFLINE_THRESHOLD_MIN = 15
 
-const SEVERITY_TONE: Record<IncidentSeverity, 'critical' | 'warning' | 'info' | 'neutral'> = {
-  critical: 'critical',
-  high: 'critical',
-  medium: 'warning',
-  low: 'neutral',
-}
+const TREND_DAYS = 14
 
-const SEVERITY_LABEL: Record<IncidentSeverity, string> = {
-  critical: 'Critica',
-  high: 'Alta',
-  medium: 'Media',
-  low: 'Baja',
+/**
+ * Incidentes por dia para la mini-grafica de la tarjeta.
+ *
+ * Los huecos se rellenan con cero en vez de omitirse: una serie que solo dibuja
+ * los dias con incidentes comprime el eje temporal y convierte una racha tranquila
+ * en una linea que parece constante. Y no se reutiliza la serie de actividad
+ * general para esta tarjeta: una linea que no corresponde al numero que tiene
+ * encima es peor que no dibujar nada.
+ */
+function incidentsPerDay(rows: { detected_at: string }[] | null, days = TREND_DAYS): number[] {
+  if (!rows?.length) return []
+
+  const buckets = new Map<string, number>()
+  const today = new Date()
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const day = new Date(today)
+    day.setDate(today.getDate() - i)
+    buckets.set(day.toISOString().slice(0, 10), 0)
+  }
+
+  for (const row of rows) {
+    const key = row.detected_at.slice(0, 10)
+    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1)
+  }
+
+  return [...buckets.values()]
 }
 
 export default async function DashboardPage() {
@@ -54,6 +62,7 @@ export default async function DashboardPage() {
     openIncidents,
     unassigned,
     recent,
+    incidentTrend,
     byDay,
     byHour,
     byCategory,
@@ -73,12 +82,22 @@ export default async function DashboardPage() {
       .from('endpoints')
       .select('*', { count: 'exact', head: true })
       .is('assigned_profile_id', null),
+    // Sin filtro de estado: el panel maestro-detalle tiene su propia pestaña de
+    // "Abiertos", y filtrar en la consulta dejaria esa pestaña sin alternativa.
     supabase
       .from('dlp_incidents')
-      .select('id, rule_triggered, rule_channel, severity, detected_at, endpoint_id')
-      .eq('status', 'open')
+      .select(
+        'id, rule_triggered, rule_channel, severity, status, enforcement_action, detected_at, endpoints(hostname)'
+      )
       .order('detected_at', { ascending: false })
-      .limit(8),
+      .limit(12),
+    // Solo la marca de tiempo: el conteo por dia se hace sobre 14 dias de
+    // incidentes, que es un volumen de filas pequeño incluso en un tenant activo.
+    supabase
+      .from('dlp_incidents')
+      .select('detected_at')
+      .gte('detected_at', offlineCutoffISO(TREND_DAYS * 24 * 60))
+      .limit(5000),
     // Las agregaciones corren en Postgres (SECURITY INVOKER, asi que RLS acota
     // por organizacion). Traer los eventos crudos para contarlos en Node
     // funcionaria con datos de demo y se caeria con un cliente real.
@@ -93,7 +112,8 @@ export default async function DashboardPage() {
   const onlineCount = online.count ?? 0
   const incidentCount = openIncidents.count ?? 0
   const unassignedCount = unassigned.count ?? 0
-  const recentIncidents = recent.data ?? []
+  const recentIncidents = (recent.data ?? []) as unknown as SpotlightIncident[]
+  const incidentSeries = incidentsPerDay(incidentTrend.data)
 
   const consentSigned = Boolean(session?.organization?.monitoring_consent_signed_at)
 
@@ -111,28 +131,50 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="space-y-5 p-6">
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="page-body space-y-6">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile
             label="Equipos con agente"
             value={totalEndpoints}
-            hint={totalEndpoints === 0 ? 'Ninguno desplegado aun' : undefined}
+            icon={MonitorSmartphone}
+            hint={totalEndpoints === 0 ? 'Ninguno desplegado aun' : 'Inventario total'}
           />
           <StatTile
             label="En linea"
             value={totalEndpoints === 0 ? '—' : `${onlineCount}/${totalEndpoints}`}
+            icon={Wifi}
             hint={`Sin señal en ${OFFLINE_THRESHOLD_MIN} min = fuera de linea`}
             tone={totalEndpoints > 0 && onlineCount === 0 ? 'warning' : 'neutral'}
+            delta={
+              totalEndpoints > 0
+                ? {
+                    value: `${Math.round((onlineCount / totalEndpoints) * 100)}% del parque`,
+                    direction: onlineCount === totalEndpoints ? 'flat' : 'down',
+                    intent: onlineCount === totalEndpoints ? 'good' : 'neutral',
+                  }
+                : undefined
+            }
           />
           <StatTile
             label="Incidentes abiertos"
             value={incidentCount}
+            icon={ShieldAlert}
             hint={incidentCount === 0 ? 'Nada pendiente de revisar' : 'Requieren revision'}
             tone={incidentCount > 0 ? 'critical' : 'success'}
+            visual={
+              incidentSeries.length
+                ? {
+                    data: incidentSeries,
+                    kind: 'bars',
+                    label: `Incidentes detectados por dia, ultimos ${TREND_DAYS} dias`,
+                  }
+                : undefined
+            }
           />
           <StatTile
             label="Equipos sin politica"
             value={unassignedCount}
+            icon={ShieldOff}
             hint={
               unassignedCount > 0
                 ? 'No tienen reglas de DLP aplicadas'
@@ -141,6 +183,15 @@ export default async function DashboardPage() {
                   : 'Cobertura completa'
             }
             tone={unassignedCount > 0 ? 'warning' : 'success'}
+            delta={
+              totalEndpoints > 0
+                ? {
+                    value: `${totalEndpoints - unassignedCount} de ${totalEndpoints} cubiertos`,
+                    direction: unassignedCount === 0 ? 'up' : 'down',
+                    intent: unassignedCount === 0 ? 'good' : 'bad',
+                  }
+                : undefined
+            }
           />
         </section>
 
@@ -156,7 +207,31 @@ export default async function DashboardPage() {
           </Callout>
         ) : null}
 
-        <section className="grid gap-3 lg:grid-cols-2">
+        <IncidentSpotlight
+          incidents={recentIncidents}
+          emptyTitle={
+            totalEndpoints === 0 ? 'Aun no hay agentes reportando' : 'Sin incidentes registrados'
+          }
+          emptyDescription={
+            totalEndpoints === 0
+              ? 'Genere una credencial de agente e instale el paquete en el primer equipo para empezar a recibir telemetria.'
+              : 'Ninguna politica de DLP se ha violado. Los incidentes aparecen aqui en cuanto un agente los detecta.'
+          }
+          emptyAction={
+            totalEndpoints === 0 ? (
+              <Link href="/settings/api-keys">
+                <Button size="sm">Generar credencial de agente</Button>
+              </Link>
+            ) : undefined
+          }
+        />
+
+        {/*
+          `items-start`: sin el, la rejilla estira cada tarjeta hasta la altura
+          de la mas alta de su fila, y el donut —que ocupa la mitad— queda con un
+          hueco blanco enorme debajo que se lee como contenido que falta.
+        */}
+        <section className="grid items-start gap-4 lg:grid-cols-2">
           <ActivityByDayChart data={byDay.data ?? []} />
           <ActivityByHourChart data={byHour.data ?? []} />
           <CategoryDonutChart data={byCategory.data ?? []} />
@@ -180,61 +255,6 @@ export default async function DashboardPage() {
           />
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Incidentes recientes sin revisar</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {recentIncidents.length === 0 ? (
-              <EmptyState
-                title={
-                  totalEndpoints === 0
-                    ? 'Aun no hay agentes reportando'
-                    : 'Sin incidentes abiertos'
-                }
-                description={
-                  totalEndpoints === 0
-                    ? 'Genere una credencial de agente e instale el paquete en el primer equipo para empezar a recibir telemetria.'
-                    : 'Ninguna politica de DLP se ha violado. Los incidentes aparecen aqui en cuanto un agente los detecta.'
-                }
-                action={
-                  totalEndpoints === 0 ? (
-                    <Link href="/settings/api-keys">
-                      <Button size="sm">Generar credencial de agente</Button>
-                    </Link>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>Regla</Th>
-                    <Th>Canal</Th>
-                    <Th>Severidad</Th>
-                    <Th>Detectado</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentIncidents.map((incident) => (
-                    <tr key={incident.id} className="hover:bg-surface-muted/50">
-                      <Td className="font-mono text-xs">{incident.rule_triggered}</Td>
-                      <Td className="text-muted-foreground">{incident.rule_channel ?? '—'}</Td>
-                      <Td>
-                        <Badge tone={SEVERITY_TONE[incident.severity]}>
-                          {SEVERITY_LABEL[incident.severity]}
-                        </Badge>
-                      </Td>
-                      <Td className="text-muted-foreground">
-                        {formatRelative(incident.detected_at)}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </>
   )

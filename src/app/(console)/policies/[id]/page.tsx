@@ -47,7 +47,7 @@ export default async function PolicyDetailPage({
         }
       />
 
-      <div className="space-y-5 p-6">
+      <div className="page-body space-y-6">
         <ProfileAssignment
           profileId={profile.id}
           profileName={profile.name}

@@ -27,7 +27,7 @@ export function EventTypeFilter({
         const value = e.target.value
         router.push(value ? `${basePath}?tipo=${value}` : basePath)
       }}
-      className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="h-10 rounded-full border border-border bg-surface px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
       aria-label="Filtrar por tipo de evento"
     >
       <option value="">Todos los eventos</option>

@@ -18,6 +18,7 @@ import {
   Td,
   Th,
 } from '@/shared/components/ui'
+import { FilterBar, FilterSearch, FilterSelect } from '@/shared/components/filter-bar'
 import { formatRelative } from '@/lib/utils'
 import {
   CHANNEL_LABEL,
@@ -60,15 +61,27 @@ export function IncidentQueue({
   const [status, setStatus] = useState<IncidentStatus | 'all'>('open')
   const [severity, setSeverity] = useState<IncidentSeverity | 'all'>('all')
   const [channel, setChannel] = useState<string>('all')
+  const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string>()
 
   const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase()
     return incidents
       .filter((i) => status === 'all' || i.status === status)
       .filter((i) => severity === 'all' || i.severity === severity)
       .filter((i) => channel === 'all' || i.rule_channel === channel)
+      .filter((i) => {
+        if (!needle) return true
+        // Se busca sobre la etiqueta legible ademas del identificador crudo: el
+        // analista recuerda "carpeta no autorizada", no "storage.carpeta_...".
+        return (
+          ruleLabel(i.rule_triggered).toLowerCase().includes(needle) ||
+          i.rule_triggered.toLowerCase().includes(needle) ||
+          (i.endpoints?.hostname ?? '').toLowerCase().includes(needle)
+        )
+      })
       .sort((a, b) => {
         // Severidad primero, luego lo mas reciente. Un incidente critico de
         // ayer importa mas que uno bajo de hace diez minutos.
@@ -76,7 +89,7 @@ export function IncidentQueue({
         if (bySeverity !== 0) return bySeverity
         return new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime()
       })
-  }, [incidents, status, severity, channel])
+  }, [incidents, status, severity, channel, query])
 
   const channels = useMemo(
     () => [...new Set(incidents.map((i) => i.rule_channel).filter(Boolean))] as string[],
@@ -120,6 +133,15 @@ export function IncidentQueue({
     )
   }
 
+  // El estado arranca en "Abiertos", asi que la cola nace con un filtro puesto.
+  // Contarlo es justo el punto: quien llega y ve la tabla corta tiene que poder
+  // saber que no la esta viendo entera.
+  const activeFilters =
+    (status === 'all' ? 0 : 1) +
+    (severity === 'all' ? 0 : 1) +
+    (channel === 'all' ? 0 : 1) +
+    (query.trim() ? 1 : 0)
+
   const openCount = incidents.filter((i) => i.status === 'open').length
   const criticalOpen = incidents.filter(
     (i) => i.status === 'open' && (i.severity === 'critical' || i.severity === 'high')
@@ -135,53 +157,52 @@ export function IncidentQueue({
 
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle>
-              Cola de incidentes ({filtered.length} de {incidents.length})
-            </CardTitle>
+          <CardTitle>
+            Cola de incidentes ({filtered.length} de {incidents.length})
+          </CardTitle>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as IncidentStatus | 'all')}
-                className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Filtrar por estado"
-              >
-                <option value="open">Abiertos ({openCount})</option>
-                <option value="reviewed">Revisados</option>
-                <option value="closed">Cerrados</option>
-                <option value="false_positive">Falsos positivos</option>
-                <option value="all">Todos</option>
-              </select>
-
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value as IncidentSeverity | 'all')}
-                className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Filtrar por severidad"
-              >
-                <option value="all">Toda severidad</option>
-                <option value="critical">Critica</option>
-                <option value="high">Alta</option>
-                <option value="medium">Media</option>
-                <option value="low">Baja</option>
-              </select>
-
-              <select
-                value={channel}
-                onChange={(e) => setChannel(e.target.value)}
-                className="h-7 rounded-md border border-border bg-input px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Filtrar por canal"
-              >
-                <option value="all">Todos los canales</option>
-                {channels.map((c) => (
-                  <option key={c} value={c}>
-                    {CHANNEL_LABEL[c] ?? c}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <FilterBar activeCount={activeFilters} className="mt-4">
+            <FilterSearch
+              label="Buscar por regla o equipo"
+              value={query}
+              onChange={setQuery}
+              placeholder="Regla o equipo…"
+              className="min-w-[12rem] flex-1 sm:max-w-xs"
+            />
+            <FilterSelect
+              label="Filtrar por estado"
+              value={status}
+              onChange={(value) => setStatus(value as IncidentStatus | 'all')}
+              options={[
+                { value: 'open', label: `Abiertos (${openCount})` },
+                { value: 'reviewed', label: 'Revisados' },
+                { value: 'closed', label: 'Cerrados' },
+                { value: 'false_positive', label: 'Falsos positivos' },
+                { value: 'all', label: 'Todos los estados' },
+              ]}
+            />
+            <FilterSelect
+              label="Filtrar por severidad"
+              value={severity}
+              onChange={(value) => setSeverity(value as IncidentSeverity | 'all')}
+              options={[
+                { value: 'all', label: 'Toda severidad' },
+                { value: 'critical', label: 'Critica' },
+                { value: 'high', label: 'Alta' },
+                { value: 'medium', label: 'Media' },
+                { value: 'low', label: 'Baja' },
+              ]}
+            />
+            <FilterSelect
+              label="Filtrar por canal"
+              value={channel}
+              onChange={setChannel}
+              options={[
+                { value: 'all', label: 'Todos los canales' },
+                ...channels.map((c) => ({ value: c, label: CHANNEL_LABEL[c] ?? c })),
+              ]}
+            />
+          </FilterBar>
 
           {/*
             Revision masiva. Es lo que hace operable la cola: la mayoria de
@@ -189,7 +210,7 @@ export function IncidentQueue({
             obligar a abrirlos de uno en uno garantiza que nadie los revise.
           */}
           {canReview && selected.size > 0 ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-surface-muted px-3 py-2">
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface-muted px-4 py-3">
               <span className="text-xs text-muted-foreground">
                 {selected.size} seleccionados:
               </span>
@@ -254,7 +275,7 @@ export function IncidentQueue({
                 {filtered.map((incident) => {
                   const count = occurrences(incident.event_snapshot)
                   return (
-                    <tr key={incident.id} className="hover:bg-surface-muted/50">
+                    <tr key={incident.id} className="hover:bg-surface-muted">
                       {canReview ? (
                         <Td>
                           <input

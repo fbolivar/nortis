@@ -86,7 +86,7 @@ export default async function AuditPage() {
               </thead>
               <tbody>
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-surface-muted/50">
+                  <tr key={entry.id} className="hover:bg-surface-muted">
                     <Td className="whitespace-nowrap text-muted-foreground tabular-nums">
                       {formatDateTime(entry.occurred_at)}
                     </Td>

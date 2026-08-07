@@ -76,7 +76,7 @@ export default async function IncidentDetailPage({
         }
       />
 
-      <div className="space-y-5 p-6">
+      <div className="page-body space-y-6">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile label="Ocurrencias" value={occurrences ?? '1'} />
           <StatTile
