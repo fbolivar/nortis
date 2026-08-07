@@ -13,7 +13,10 @@ import type { Database } from '@/shared/types/database'
  * inalcanzable — un fallo que solo aparece probando por HTTP, porque llamando a
  * los RPC directamente el proxy ni siquiera interviene.
  */
-const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/share', '/api/agent']
+// `/update-password` NO esta aqui a proposito: exige sesion, y la trae el
+// enlace de recuperacion una vez canjeado en /auth/confirm. Abrirla al publico
+// permitiria llegar al formulario sin haber probado nada.
+const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/auth', '/share', '/api/agent']
 
 function isPublic(pathname: string) {
   return pathname === '/' || PUBLIC_PATHS.some((p) => pathname.startsWith(p))

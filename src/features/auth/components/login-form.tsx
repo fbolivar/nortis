@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { credentialsSchema } from '../types/schemas'
-import { Button, Input, Label, FormError } from '@/shared/components/ui'
+import { Button, Callout, Input, Label, FormError } from '@/shared/components/ui'
 
 export function LoginForm() {
   const router = useRouter()
@@ -55,7 +55,17 @@ export function LoginForm() {
       </div>
 
       <div>
-        <Label htmlFor="password">Contraseña</Label>
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <Label htmlFor="password" className="mb-0">
+            Contraseña
+          </Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            ¿La olvido?
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"
@@ -64,6 +74,19 @@ export function LoginForm() {
           required
         />
       </div>
+
+      {/* Un enlace de recuperacion caducado o ya usado devuelve aqui. Se avisa
+          en vez de dejar al usuario preguntandose por que no paso nada. */}
+      {searchParams.get('recuperacion') === 'invalida' ? (
+        <Callout tone="warning">
+          Ese enlace de recuperacion ya no es valido. Los enlaces caducan en una
+          hora y solo sirven una vez;{' '}
+          <Link href="/forgot-password" className="text-foreground underline underline-offset-2">
+            solicite uno nuevo
+          </Link>
+          .
+        </Callout>
+      ) : null}
 
       <FormError>{error}</FormError>
 
