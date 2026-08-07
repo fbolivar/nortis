@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Nortis usa UN SOLO tema, oscuro. No hay conmutador claro/oscuro.
+ *
+ * No es una preferencia estetica: el usuario de esta consola es un analista que
+ * la deja abierta durante toda la jornada. Mantener un unico tema tambien
+ * garantiza que los colores de severidad conserven exactamente el mismo
+ * contraste siempre — rojo critico sobre fondo claro y sobre fondo oscuro no se
+ * perciben con la misma urgencia, y aqui esa percepcion es funcional.
+ */
+@layer base {
+  :root {
+    --background: 220 18% 7%;
+    --foreground: 210 15% 92%;
+
+    --surface: 220 16% 10%;
+    --surface-muted: 220 15% 13%;
+
+    --muted: 220 14% 16%;
+    --muted-foreground: 218 10% 62%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 16%;
+    --ring: 213 90% 60%;
+
+    /* Primario neutro a proposito: la accion principal no compite con los
+       indicadores de severidad. */
+    --primary: 210 14% 88%;
+    --primary-foreground: 220 18% 9%;
+
+    --critical: 0 72% 58%;
+    --critical-foreground: 0 0% 100%;
+    --critical-subtle: 0 60% 16%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 30 40% 10%;
+    --warning-subtle: 36 70% 14%;
+
+    --success: 152 55% 45%;
+    --success-foreground: 155 45% 8%;
+    --success-subtle: 152 45% 12%;
+
+    --info: 213 85% 62%;
+    --info-foreground: 0 0% 100%;
+    --info-subtle: 213 60% 16%;
+
+    /*
+     * Paleta de graficas — pasos elegidos para superficie oscura.
+     *
+     * Validada contra la superficie real de Nortis (#15181d): banda de
+     * luminosidad, piso de croma, separacion para daltonismo (peor par adyacente
+     * ΔE 8.4 protan), piso de vision normal (ΔE 19.3) y contraste >= 3:1.
+     * NO se reordenan ni se generan tonos nuevos: el orden es el que hace pasar
+     * las comprobaciones, y un septimo tono generado seria indistinguible de
+     * alguno existente para un lector con deficiencia de color.
+     *
+     * Son independientes de los colores de estado (critical/warning/success):
+     * en esta consola el color de estado SIGNIFICA severidad, y reutilizarlo
+     * como "serie 4" destruiria ese significado.
+     */
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
+
+    /* Rejilla y ejes: una sola sombra por encima de la superficie, solidos. */
+    --chart-grid: 220 14% 18%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Cifras alineadas en columnas numericas: sin esto, una tabla de conteos o de
+     marcas de tiempo baila de fila en fila y deja de ser escaneable. */
+  table,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Rutas de archivo, hashes y fingerprints. Truncado con el inicio visible. */
+  .forensic {
+    @apply font-mono text-xs text-muted-foreground;
+  }
+}
