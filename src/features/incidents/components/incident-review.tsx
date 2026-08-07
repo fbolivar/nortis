@@ -100,7 +100,7 @@ export function IncidentReview({
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Que se verifico, con quien se hablo, que decision se tomo."
-                className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-base placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Quedan asociadas al incidente de forma permanente. En una auditoria, un

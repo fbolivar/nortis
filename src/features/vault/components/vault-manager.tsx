@@ -299,7 +299,7 @@ export function VaultManager({
             <div>
               <Label>Enlace de descarga</Label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 break-all rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs">
+                <code className="flex-1 break-all rounded-xl border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
                   {shareResult.url}
                 </code>
                 <Button size="sm" variant="secondary" onClick={() => copy(shareResult.url, 'url')}>
@@ -311,7 +311,7 @@ export function VaultManager({
             <div>
               <Label>Credencial de un solo uso</Label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 break-all rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs">
+                <code className="flex-1 break-all rounded-xl border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
                   {shareResult.credential}
                 </code>
                 <Button
@@ -349,7 +349,7 @@ export function VaultManager({
               type="file"
               onChange={onUpload}
               disabled={Boolean(busy)}
-              className="block w-full text-sm text-muted-foreground file:mr-3 file:h-9 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary file:px-3.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:h-11 file:cursor-pointer file:rounded-full file:border-0 file:bg-primary file:px-5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
             />
             <p className="mt-2 text-xs text-muted-foreground">
               El archivo se cifra <strong className="text-foreground">en su equipo</strong>{' '}
@@ -390,7 +390,7 @@ export function VaultManager({
               </thead>
               <tbody>
                 {internal.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-surface-muted/50">
+                  <tr key={doc.id} className="hover:bg-surface-muted">
                     <Td className="forensic">{doc.filename_hash.slice(0, 16)}…</Td>
                     <Td className="tabular-nums text-muted-foreground">
                       {formatBytes(doc.size_bytes)}
@@ -480,7 +480,7 @@ export function VaultManager({
                     ? new Date(doc.access_expires_at) < new Date()
                     : false
                   return (
-                    <tr key={doc.id} className="hover:bg-surface-muted/50">
+                    <tr key={doc.id} className="hover:bg-surface-muted">
                       <Td>{doc.external_recipient_email ?? '—'}</Td>
                       <Td className="tabular-nums text-muted-foreground">
                         {doc.access_download_count}

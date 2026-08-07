@@ -91,7 +91,7 @@ export function StringListInput({
           {values.map((value) => (
             <li
               key={value}
-              className="inline-flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-xs"
+              className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs"
             >
               <span className={mono ? 'font-mono' : undefined}>{value}</span>
               <button

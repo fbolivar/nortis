@@ -1,3 +1,4 @@
+import { AlertTriangle, CircleSlash, Inbox, ShieldAlert } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionContext } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
@@ -28,7 +29,7 @@ export default async function IncidentsPage() {
     return (
       <>
         <PageHeader title="Incidentes" description="Cola de revision" />
-        <div className="p-6">
+        <div className="page-body">
           <Callout tone="critical" title="No se pudo cargar la cola">
             {error.message}
           </Callout>
@@ -50,23 +51,31 @@ export default async function IncidentsPage() {
         description="Violaciones de politica detectadas en los equipos"
       />
 
-      <div className="space-y-5 p-6">
+      <div className="page-body space-y-6">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile
             label="Sin revisar"
             value={open.length}
+            icon={Inbox}
             tone={open.length > 0 ? 'warning' : 'success'}
             hint={open.length === 0 ? 'Cola al dia' : undefined}
           />
           <StatTile
             label="Criticos abiertos"
             value={critical}
+            icon={ShieldAlert}
             tone={critical > 0 ? 'critical' : 'success'}
           />
-          <StatTile label="Altos abiertos" value={high} tone={high > 0 ? 'critical' : 'success'} />
+          <StatTile
+            label="Altos abiertos"
+            value={high}
+            icon={AlertTriangle}
+            tone={high > 0 ? 'critical' : 'success'}
+          />
           <StatTile
             label="Falsos positivos"
             value={falsePositives}
+            icon={CircleSlash}
             hint={
               falsePositives > 0
                 ? 'Considere ajustar las reglas que los generan'

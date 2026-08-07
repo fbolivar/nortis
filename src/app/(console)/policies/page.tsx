@@ -52,7 +52,7 @@ export default async function PoliciesPage() {
     return (
       <>
         <PageHeader title="Politicas" description="Perfiles de seguridad" />
-        <div className="p-6">
+        <div className="page-body">
           <Callout tone="critical" title="No se pudieron cargar las politicas">
             {error.message}
           </Callout>
@@ -88,7 +88,7 @@ export default async function PoliciesPage() {
         }
       />
 
-      <div className="space-y-5 p-6">
+      <div className="page-body space-y-6">
         {list.length > 0 && !hasDefault ? (
           <Callout tone="warning" title="Sin perfil por defecto">
             Los equipos que se registren de aqui en adelante quedaran sin ninguna regla
@@ -137,7 +137,7 @@ export default async function PoliciesPage() {
                     const channels = activeChannels(parsePolicyConfig(profile.config))
                     const count = assignedByProfile.get(profile.id) ?? 0
                     return (
-                      <tr key={profile.id} className="hover:bg-surface-muted/50">
+                      <tr key={profile.id} className="hover:bg-surface-muted">
                         <Td>
                           <Link
                             href={`/policies/${profile.id}`}

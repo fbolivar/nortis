@@ -20,7 +20,7 @@ export function ModulePending({
   return (
     <>
       <PageHeader title={title} description={description} />
-      <div className="p-6">
+      <div className="page-body">
         <div className="rounded-lg border border-dashed border-border">
           <EmptyState title="Modulo en construccion" description={phase} />
         </div>

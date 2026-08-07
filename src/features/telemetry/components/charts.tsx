@@ -32,7 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/shared/c
  *    se lee como "proyeccion" o "umbral" cuando solo es una rejilla.
  */
 
-const AXIS_STYLE = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' } as const
+const AXIS_STYLE = { fontSize: 12, fill: 'hsl(var(--muted-foreground))' } as const
 
 function TooltipBox({
   active,
@@ -47,7 +47,7 @@ function TooltipBox({
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs shadow-lg">
+    <div className="rounded-xl border border-border bg-surface px-3 py-2 text-xs shadow-lifted">
       <p className="font-medium text-foreground">{label}</p>
       <p className="tabular-nums text-muted-foreground">
         {Number(payload[0]?.value ?? 0).toLocaleString('es-CO')} {unit}
@@ -166,7 +166,7 @@ export function ActivityByDayChart({
       emptyTitle="Sin telemetria en los ultimos 14 dias"
       emptyDescription="Los equipos con agente instalado reportan actividad de forma continua."
     >
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={shaped} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
           <defs>
             <linearGradient id="fadeActivity" x1="0" y1="0" x2="0" y2="1">
@@ -230,7 +230,7 @@ export function ActivityByHourChart({
       emptyTitle="Sin datos horarios"
       emptyDescription="Se necesita al menos un dia de telemetria para construir este reporte."
     >
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={220}>
         <BarChart data={shaped} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
           <XAxis
             dataKey="label"
@@ -314,9 +314,9 @@ export function RankingChart({
                   {value.toLocaleString('es-CO')} {unit}
                 </span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-sm bg-muted">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-sm"
+                  className="h-full rounded-full"
                   style={{
                     width: `${Math.max(2, (value / max) * 100)}%`,
                     backgroundColor: 'var(--chart-1)',
@@ -404,7 +404,7 @@ export function CategoryDonutChart({
             <li key={entry.category} className="flex items-center gap-2 text-xs">
               <span
                 aria-hidden
-                className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
               />
               <span className="flex-1 truncate text-foreground">{entry.category}</span>

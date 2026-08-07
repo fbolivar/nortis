@@ -107,7 +107,7 @@ export function ApiKeysManager({ apiKeys, canManage }: { apiKeys: ApiKey[]; canM
             generar otra.
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 break-all rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs">
+            <code className="flex-1 break-all rounded-xl border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
               {freshKey}
             </code>
             <Button size="sm" variant="secondary" onClick={copyKey}>
@@ -178,7 +178,7 @@ export function ApiKeysManager({ apiKeys, canManage }: { apiKeys: ApiKey[]; canM
                     !revoked && key.expires_at ? new Date(key.expires_at) < new Date() : false
 
                   return (
-                    <tr key={key.id} className="hover:bg-surface-muted/50">
+                    <tr key={key.id} className="hover:bg-surface-muted">
                       <Td>{key.name}</Td>
                       <Td className="font-mono text-xs text-muted-foreground">
                         {key.key_prefix}…

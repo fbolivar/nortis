@@ -9,7 +9,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         description="Organizacion, usuarios, credenciales de agentes y auditoria"
       />
       <SettingsTabs />
-      <div className="p-6">{children}</div>
+      <div className="page-body">{children}</div>
     </>
   )
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Clock, ShieldAlert, Wifi, WifiOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/shared/components/console-shell'
 import { StatTile } from '@/shared/components/stat-tile'
@@ -34,7 +35,7 @@ export default async function EndpointsPage() {
     return (
       <>
         <PageHeader title="Equipos" description="Inventario de estaciones con agente" />
-        <div className="p-6">
+        <div className="page-body">
           <Callout tone="critical" title="No se pudo cargar el inventario">
             {error.message}
           </Callout>
@@ -69,22 +70,25 @@ export default async function EndpointsPage() {
         }
       />
 
-      <div className="space-y-5 p-6">
+      <div className="page-body space-y-6">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile label="En linea" value={count('online')} />
+          <StatTile label="En linea" value={count('online')} icon={Wifi} />
           <StatTile
             label="Sin señal reciente"
             value={count('stale')}
+            icon={Clock}
             tone={count('stale') > 0 ? 'warning' : 'neutral'}
           />
           <StatTile
             label="Fuera de linea"
             value={count('offline')}
+            icon={WifiOff}
             tone={count('offline') > 0 ? 'warning' : 'neutral'}
           />
           <StatTile
             label="En cuarentena"
             value={count('quarantined')}
+            icon={ShieldAlert}
             tone={count('quarantined') > 0 ? 'critical' : 'neutral'}
           />
         </section>
@@ -139,7 +143,7 @@ export default async function EndpointsPage() {
                   {endpoints.map((endpoint, index) => {
                     const profile = endpoint.security_profiles as { name: string } | null
                     return (
-                      <tr key={endpoint.id} className="hover:bg-surface-muted/50">
+                      <tr key={endpoint.id} className="hover:bg-surface-muted">
                         <Td>
                           <Link
                             href={`/endpoints/${endpoint.id}`}

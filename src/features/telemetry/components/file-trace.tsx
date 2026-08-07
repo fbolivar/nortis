@@ -11,12 +11,11 @@ import {
   CardTitle,
   EmptyState,
   FormError,
-  Input,
-  Label,
   Table,
   Td,
   Th,
 } from '@/shared/components/ui'
+import { FilterBar, FilterSearch, FilterSelect } from '@/shared/components/filter-bar'
 import { formatDateTime } from '@/lib/utils'
 import { EventTypeBadge, formatBytes } from './event-row'
 import type { Endpoint, EventType } from '@/shared/types/database'
@@ -59,6 +58,11 @@ export function FileTrace({ endpoints }: { endpoints: Pick<Endpoint, 'id' | 'hos
   const [rows, setRows] = useState<TraceRow[]>()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string>()
+
+  // El periodo no cuenta como filtro activo: siempre tiene un valor y contarlo
+  // dejaria el marcador anclado en 1, que es lo mismo que no informar.
+  const activeFilters =
+    (query.trim() ? 1 : 0) + (endpointId ? 1 : 0) + (user.trim() ? 1 : 0)
 
   async function runSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -117,69 +121,53 @@ export function FileTrace({ endpoints }: { endpoints: Pick<Endpoint, 'id' | 'hos
           <CardTitle>Buscar movimientos de archivos</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={runSearch} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="lg:col-span-2">
-              <Label htmlFor="q">Ruta o nombre de archivo</Label>
-              <Input
-                id="q"
+          {/*
+            Barra de pastillas en vez de una rejilla de campos etiquetados: son
+            cuatro criterios opcionales, no un formulario de alta. La etiqueta de
+            cada control vive en `aria-label` y en el placeholder — visible para
+            quien mira, anunciada para quien no.
+          */}
+          <form onSubmit={runSearch}>
+            <FilterBar activeCount={activeFilters}>
+              <FilterSearch
+                label="Ruta o nombre de archivo"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={setQuery}
                 placeholder="nomina, .xlsx, D:\Compartido…"
-                className="font-mono"
+                className="min-w-[12rem] flex-1 sm:max-w-sm"
+                inputClassName="font-mono"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="endpoint">Equipo</Label>
-              <select
-                id="endpoint"
+              <FilterSelect
+                label="Equipo"
                 value={endpointId}
-                onChange={(e) => setEndpointId(e.target.value)}
-                className="h-9 w-full rounded-md border border-border bg-input px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">Todos</option>
-                {endpoints.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.hostname}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <Label htmlFor="user">Usuario de Windows</Label>
-              <Input
-                id="user"
-                value={user}
-                onChange={(e) => setUser(e.target.value)}
-                placeholder="jperez"
-                className="font-mono"
+                onChange={setEndpointId}
+                options={[
+                  { value: '', label: 'Todos los equipos' },
+                  ...endpoints.map((e) => ({ value: e.id, label: e.hostname })),
+                ]}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="days">Periodo</Label>
-              <select
-                id="days"
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="h-9 w-full rounded-md border border-border bg-input px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {RANGES.map((r) => (
-                  <option key={r.days} value={r.days}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="sm:col-span-2 lg:col-span-5">
-              <Button type="submit" disabled={pending}>
+              <FilterSearch
+                label="Usuario de Windows"
+                value={user}
+                onChange={setUser}
+                placeholder="Usuario…"
+                className="w-40"
+                inputClassName="font-mono"
+              />
+              <FilterSelect
+                label="Periodo"
+                value={String(days)}
+                onChange={(value) => setDays(Number(value))}
+                options={RANGES.map((r) => ({ value: String(r.days), label: r.label }))}
+              />
+              {/* `h-10` para igualar la altura de las pastillas: un boton de 36px
+                  en una fila de controles de 40px descuadra la linea base. */}
+              <Button type="submit" size="sm" className="h-10" disabled={pending}>
                 <Search className="h-3.5 w-3.5" aria-hidden />
                 {pending ? 'Buscando…' : 'Buscar'}
               </Button>
-              <FormError>{error}</FormError>
-            </div>
+            </FilterBar>
+            <FormError>{error}</FormError>
           </form>
 
           <p className="mt-3 text-xs text-muted-foreground">
@@ -225,7 +213,7 @@ export function FileTrace({ endpoints }: { endpoints: Pick<Endpoint, 'id' | 'hos
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} className="hover:bg-surface-muted/50">
+                    <tr key={row.id} className="hover:bg-surface-muted">
                       <Td className="whitespace-nowrap text-muted-foreground tabular-nums">
                         {formatDateTime(row.occurred_at)}
                       </Td>

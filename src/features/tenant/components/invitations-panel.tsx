@@ -128,7 +128,7 @@ export function InvitationsPanel({
             error no da acceso a nadie mas — pero caduca en 7 dias.
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 break-all rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs">
+            <code className="flex-1 break-all rounded-xl border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
               {link}
             </code>
             <Button size="sm" variant="secondary" onClick={copyLink}>
@@ -167,7 +167,7 @@ export function InvitationsPanel({
                   id="inviteRole"
                   value={role}
                   onChange={(e) => setRole(e.target.value as AppRole)}
-                  className="h-9 rounded-md border border-border bg-input px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-12 rounded-xl border border-border bg-surface px-3.5 text-base transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
                 >
                   <option value="viewer">Solo lectura</option>
                   {/* Solo el owner reparte el rol de administrador: un admin que
@@ -216,7 +216,7 @@ export function InvitationsPanel({
                   const expired = new Date(inv.expires_at) < new Date()
                   const vigente = !inv.accepted_at && !inv.revoked_at && !expired
                   return (
-                    <tr key={inv.id} className="hover:bg-surface-muted/50">
+                    <tr key={inv.id} className="hover:bg-surface-muted">
                       <Td>{inv.email}</Td>
                       <Td className="text-muted-foreground">{ROLE_LABEL[inv.role]}</Td>
                       <Td>

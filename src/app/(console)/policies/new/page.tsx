@@ -25,7 +25,7 @@ export default async function NewPolicyPage() {
         title="Nuevo perfil de seguridad"
         description="Empieza sin restricciones: active solo lo que vaya a simular antes de desplegar"
       />
-      <div className="p-6">
+      <div className="page-body">
         <PolicyEditor
           profile={null}
           initialConfig={emptyPolicyConfig()}

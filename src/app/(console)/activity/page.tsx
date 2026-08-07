@@ -16,7 +16,7 @@ export default async function ActivityPage() {
         title="Trazabilidad"
         description="Quien creo, modifico o elimino cada archivo, y desde que equipo"
       />
-      <div className="p-6">
+      <div className="page-body">
         <FileTrace endpoints={endpoints ?? []} />
       </div>
     </>
