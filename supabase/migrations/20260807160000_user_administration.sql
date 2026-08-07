@@ -421,12 +421,28 @@ grant execute on function public.admin_delete_user(uuid)             to authenti
 -- No abre superficie nueva: UPDATE sobre audit_log esta revocado a anon,
 -- authenticated y service_role, asi que el unico camino que llega hasta aqui es
 -- el cascade de la clave foranea.
+--
+-- CUIDADO AL TOCAR ESTA FUNCION: tiene DOS excepciones y vienen de sitios
+-- distintos. La de DELETE la introdujo 20260806121500_tenant_offboarding_path
+-- para que se pueda dar de baja un tenant (terminacion de contrato y derecho de
+-- supresion, Ley 1581 de 2012 art. 8). La primera version de este archivo la
+-- perdio al reescribir la funcion, y `purge_organization` dejo de funcionar sin
+-- que ninguna prueba lo notara. Un `create or replace` sobre una funcion ajena
+-- se lleva por delante lo que no se vuelva a escribir.
 create or replace function public.reject_audit_log_mutation()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
 begin
+  -- Baja de tenant: solo filas del tenant EXACTO marcado, y la marca solo la
+  -- pone purge_organization(), reservada a service_role.
+  if tg_op = 'DELETE'
+     and coalesce(current_setting('nortis.purge_organization', true), '') = old.organization_id::text then
+    return old;
+  end if;
+
+  -- Anonimizacion del actor al eliminar un usuario.
   if tg_op = 'UPDATE'
      and old.actor_user_id is not null
      and new.actor_user_id is null
@@ -435,7 +451,7 @@ begin
     return new;
   end if;
 
-  raise exception 'audit_log es inmutable: no se permite % ', tg_op
+  raise exception 'audit_log es inmutable: no se permite %', tg_op
     using errcode = 'insufficient_privilege';
 end;
 $$;

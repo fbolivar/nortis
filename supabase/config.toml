@@ -1,0 +1,66 @@
+# =============================================================================
+# Nortis | Configuracion del stack local de Supabase
+# =============================================================================
+# Existe para que `supabase start` levante en integracion continua una copia
+# efimera del esquema, y ahi corran las dos suites que hasta ahora estaban
+# escritas pero no se ejecutaban nunca:
+#
+#   - supabase/tests/rls_tenant_isolation.test.sql  (pgTAP, aislamiento entre
+#     tenants) — su propia cabecera decia "PENDIENTE DE EJECUCION".
+#   - tests/agent-api.test.mjs  (contrato HTTP de /api/agent).
+#
+# Tambien sirve para desarrollo local sin tocar el proyecto de produccion, que
+# hoy es la unica base que existe.
+#
+# NO se declara ningun secreto aqui. El stack local genera sus propias claves de
+# juguete al arrancar, y el workflow las lee de `supabase status`.
+
+project_id = "nortis"
+
+[api]
+enabled = true
+port = 54321
+# `extensions` en el search_path: pgcrypto vive ahi y las funciones del esquema
+# la invocan calificada (extensions.digest, extensions.crypt). Sin esto, los RPC
+# del agente fallan al resolver el nombre.
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# 17 para igualar produccion (verificado: server_version 17.6). Una version
+# distinta en CI validaria un motor que no es el que ejecuta el producto.
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Sin confirmacion por correo en local: no hay servidor de correo y una cuenta
+# de prueba que no se puede confirmar bloquea cualquier flujo de sesion.
+enable_confirmations = false
+
+# Storage se queda ENCENDIDO: la migracion del bucket de documentos cifrados
+# escribe en el esquema `storage`, y sin el servicio la migracion falla y el
+# arranque entero se cae.
+[storage]
+enabled = true
+
+# Apagados: no los toca ninguna migracion y cada uno es un contenedor menos que
+# descargar y arrancar en cada ejecucion de CI.
+[studio]
+enabled = false
+
+[analytics]
+enabled = false
+
+[realtime]
+enabled = false
