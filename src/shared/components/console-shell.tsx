@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -10,7 +11,6 @@ import {
   Menu,
   MonitorSmartphone,
   ShieldAlert,
-  ShieldCheck,
   SlidersHorizontal,
   Lock,
   Settings,
@@ -57,25 +57,45 @@ function initials(email: string) {
   return (raw || '?').toUpperCase()
 }
 
-/** Marca. Cuadro violeta + nombre; el nombre cede sitio a la navegacion en lg-xl. */
+/**
+ * Marca. Lockup real del cliente + nombre de la organizacion.
+ *
+ * Se usa la variante OSCURA del lockup porque el encabezado es `bg-surface`
+ * (blanco): la variante clara es blanca y sobre blanco no existe.
+ *
+ * `alt=""` a proposito. El enlace ya declara `aria-label="Nortis, ir al panel"`,
+ * que sustituye por completo a su contenido para un lector de pantalla; darle
+ * texto alternativo al logo solo añadiria ruido si el aria-label desapareciera.
+ *
+ * `priority`: es la unica imagen por encima del pliegue en TODAS las rutas de la
+ * consola, y sin ella Next la carga en diferido y la marca aparece parpadeando.
+ */
 function Brand({ organizationName }: { organizationName: string }) {
   return (
     <Link href="/dashboard" className="flex min-w-0 items-center gap-3" aria-label="Nortis, ir al panel">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-pill">
-        <ShieldCheck className="h-5 w-5" aria-hidden />
-      </span>
+      <Image
+        src="/brand/logo.png"
+        alt=""
+        width={960}
+        height={257}
+        priority
+        sizes="128px"
+        className="h-7 w-auto shrink-0 sm:h-8"
+      />
       {/*
-        Entre lg y xl el nombre se oculta: en ese rango la pastilla necesita todo
-        el ancho para mostrar las siete etiquetas, y la marca sigue identificada
-        por el cuadro violeta.
+        Entre lg y xl el nombre de la organizacion se oculta: en ese rango la
+        pastilla necesita todo el ancho para mostrar las siete etiquetas, y el
+        producto sigue identificado por el propio lockup.
       */}
-      <span className="block min-w-0 lg:hidden xl:block">
-        <span className="block text-base font-semibold leading-tight tracking-tight">Nortis</span>
+      <span className="block min-w-0 border-l border-border pl-3 lg:hidden xl:block">
         <span
-          className="block truncate text-xs leading-tight text-muted-foreground"
+          className="block truncate text-sm font-medium leading-tight"
           title={organizationName}
         >
           {organizationName}
+        </span>
+        <span className="block text-xs leading-tight text-muted-foreground">
+          Consola de seguridad
         </span>
       </span>
     </Link>
@@ -359,11 +379,14 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <header className="shell-container flex flex-col gap-4 pb-6 pt-7 sm:flex-row sm:items-end sm:justify-between">
+    <header className="shell-container flex flex-col gap-3 pb-4 pt-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
+        {/* 22px y no 34px: el titulo de ruta ya esta reforzado por el estado
+            activo de la navegacion, asi que no necesita competir con las
+            metricas que tiene justo debajo. */}
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         {description ? (
-          <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? (

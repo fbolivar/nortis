@@ -21,17 +21,27 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'any',
-    background_color: '#f2f0fb',
-    theme_color: '#f2f0fb',
+    /*
+     * Ambos son el lienzo de la marca (`--background`, el azul-gris derivado del
+     * azul marino del logo) y no el azul marino puro.
+     *
+     * `background_color` pinta la pantalla de arranque: tiene que ser el color
+     * que el usuario vera medio segundo despues, o el arranque da un fogonazo.
+     * `theme_color` tiñe la barra de estado en Android: con el azul marino, la
+     * barra quedaria oscura sobre una app clara y se leeria como un recorte.
+     * El isotipo azul del icono ya aporta la marca sobre este lienzo.
+     */
+    background_color: '#f2f4f8',
+    theme_color: '#f2f4f8',
     lang: 'es',
     dir: 'ltr',
     categories: ['business', 'productivity', 'security'],
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      // El icono enmascarable es un archivo aparte con el glifo mas pequeño: si
-      // se declarara el mismo con `purpose: 'maskable'`, Android recortaria el
-      // borde del escudo al aplicar su forma.
+      // El icono enmascarable es un archivo aparte con el isotipo mas pequeño:
+      // si se declarara el mismo con `purpose: 'maskable'`, Android recortaria
+      // las puntas de la rosa de los vientos al aplicar su forma.
       {
         src: '/icons/icon-maskable-512.png',
         sizes: '512x512',

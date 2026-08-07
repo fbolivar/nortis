@@ -131,8 +131,13 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="page-body space-y-6">
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="page-body space-y-4">
+        {/*
+          Dos columnas ya en telefono. Con la tarjeta compacta, una metrica por
+          fila dejaba el resumen ocupando pantalla y media antes de llegar a los
+          incidentes, que es lo que se viene a mirar.
+        */}
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatTile
             label="Equipos con agente"
             value={totalEndpoints}
@@ -140,6 +145,7 @@ export default async function DashboardPage() {
             hint={totalEndpoints === 0 ? 'Ninguno desplegado aun' : 'Inventario total'}
           />
           <StatTile
+            delay={60}
             label="En linea"
             value={totalEndpoints === 0 ? '—' : `${onlineCount}/${totalEndpoints}`}
             icon={Wifi}
@@ -156,6 +162,7 @@ export default async function DashboardPage() {
             }
           />
           <StatTile
+            delay={120}
             label="Incidentes abiertos"
             value={incidentCount}
             icon={ShieldAlert}
@@ -172,6 +179,7 @@ export default async function DashboardPage() {
             }
           />
           <StatTile
+            delay={180}
             label="Equipos sin politica"
             value={unassignedCount}
             icon={ShieldOff}
@@ -231,10 +239,23 @@ export default async function DashboardPage() {
           de la mas alta de su fila, y el donut —que ocupa la mitad— queda con un
           hueco blanco enorme debajo que se lee como contenido que falta.
         */}
-        <section className="grid items-start gap-4 lg:grid-cols-2">
+        {/*
+          Dos rejillas y no una de cinco huecos: 5 tarjetas en 2 o en 3 columnas
+          dejan SIEMPRE un hueco al final de la ultima fila, y ese vacio al pie
+          del panel se lee como una tarjeta que no cargo.
+
+          El reparto ademas no es arbitrario. Las series temporales necesitan
+          ancho —una linea de 14 puntos en un tercio de pantalla convierte las
+          variaciones reales en dientes de sierra—, mientras que el donut y los
+          dos rankings son listas cortas que se leen igual de bien en un tercio.
+        */}
+        <section className="grid items-start gap-3 lg:grid-cols-2">
           <ActivityByDayChart data={byDay.data ?? []} />
-          <ActivityByHourChart data={byHour.data ?? []} />
-          <CategoryDonutChart data={byCategory.data ?? []} />
+          <ActivityByHourChart data={byHour.data ?? []} delay={60} />
+        </section>
+
+        <section className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <CategoryDonutChart data={byCategory.data ?? []} delay={120} />
           <RankingChart
             title="Aplicaciones mas usadas"
             description="Ultimos 7 dias"
@@ -243,6 +264,7 @@ export default async function DashboardPage() {
             unit="eventos"
             emptyTitle="Sin uso de aplicaciones registrado"
             emptyDescription="El agente reporta apertura y foco de ventana de cada proceso."
+            delay={180}
           />
           <RankingChart
             title="Sitios mas visitados"
@@ -252,6 +274,7 @@ export default async function DashboardPage() {
             unit="visitas"
             emptyTitle="Sin navegacion registrada"
             emptyDescription="Se registra el dominio, nunca la URL completa: la ruta y la query llevan identificadores y tokens."
+            delay={240}
           />
         </section>
 

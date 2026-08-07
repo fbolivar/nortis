@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/shared/components/ui'
 
 /*
@@ -56,6 +57,16 @@ function TooltipBox({
   )
 }
 
+/**
+ * Alto del lienzo de las graficas cartesianas.
+ *
+ * Constante compartida y no un numero suelto en cada grafica: la de dias y la de
+ * horas viven una al lado de la otra en el panel, y basta con que difieran en
+ * unos pocos pixeles para que sus lineas base dejen de coincidir y la fila se
+ * lea desalineada.
+ */
+const CHART_HEIGHT = 168
+
 /** Contenedor con titulo y acceso a los datos en tabla. */
 function ChartFrame({
   title,
@@ -66,6 +77,7 @@ function ChartFrame({
   isEmpty,
   emptyTitle,
   emptyDescription,
+  delay = 0,
 }: {
   title: string
   description?: string
@@ -75,23 +87,35 @@ function ChartFrame({
   isEmpty: boolean
   emptyTitle: string
   emptyDescription: string
+  /** Retardo de entrada en ms, para escalonar la rejilla de graficas. */
+  delay?: number
 }) {
   const [showTable, setShowTable] = useState(false)
 
   return (
-    <Card>
-      <CardHeader>
+    <Card
+      style={delay ? { animationDelay: `${delay}ms` } : undefined}
+      className={cn(
+        'rounded-xl border-border/70 transition-all duration-200 hover:border-border hover:shadow-lifted',
+        'motion-reduce:transition-none motion-safe:animate-rise'
+      )}
+    >
+      <CardHeader className="px-4 pt-4 sm:px-4 sm:pt-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle>{title}</CardTitle>
+          <div className="min-w-0">
+            {/* El titulo baja de 18px a 14px: en una rejilla de cinco tarjetas,
+                cinco titulos a 18px pesan mas que las propias graficas. */}
+            <CardTitle className="truncate text-sm">{title}</CardTitle>
             {description ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">{description}</p>
             ) : null}
           </div>
           {!isEmpty ? (
+            // Pastilla y no enlace subrayado: a este cuerpo el subrayado se
+            // confundia con el texto de la descripcion que tiene justo al lado.
             <button
               onClick={() => setShowTable((v) => !v)}
-              className="shrink-0 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              className="shrink-0 rounded-full border border-border/70 px-2.5 py-1 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-expanded={showTable}
             >
               {showTable ? 'Ver grafica' : 'Ver datos'}
@@ -99,18 +123,20 @@ function ChartFrame({
           ) : null}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 pb-4 pt-3 sm:px-4 sm:py-3 sm:pb-4">
         {isEmpty ? (
           <EmptyState title={emptyTitle} description={emptyDescription} />
         ) : showTable ? (
-          <div className="max-h-64 overflow-y-auto">
-            <table className="w-full text-sm">
+          // Alto fijado al del lienzo: sin esto la tarjeta da un salto al
+          // cambiar de grafica a tabla y arrastra a toda la rejilla con ella.
+          <div className="overflow-y-auto" style={{ maxHeight: CHART_HEIGHT }}>
+            <table className="w-full text-xs">
               <thead className="sticky top-0 bg-surface">
                 <tr>
                   {columns.map((c) => (
                     <th
                       key={c}
-                      className="border-b border-border px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                      className="border-b border-border px-2 py-1.5 text-left text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground"
                     >
                       {c}
                     </th>
@@ -145,8 +171,10 @@ function ChartFrame({
 
 export function ActivityByDayChart({
   data,
+  delay,
 }: {
   data: { day: string; event_count: number }[]
+  delay?: number
 }) {
   const shaped = data.map((d) => ({
     ...d,
@@ -165,9 +193,10 @@ export function ActivityByDayChart({
       isEmpty={data.length === 0}
       emptyTitle="Sin telemetria en los ultimos 14 dias"
       emptyDescription="Los equipos con agente instalado reportan actividad de forma continua."
+      delay={delay}
     >
-      <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={shaped} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+        <AreaChart data={shaped} margin={{ top: 6, right: 6, bottom: 0, left: -14 }}>
           <defs>
             <linearGradient id="fadeActivity" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
@@ -180,13 +209,20 @@ export function ActivityByDayChart({
             tickLine={false}
             axisLine={{ stroke: 'hsl(var(--chart-grid))' }}
             interval="preserveStartEnd"
+            minTickGap={16}
           />
           <YAxis
             tick={AXIS_STYLE}
             tickLine={false}
             axisLine={false}
+            /* 44px y no menos: por debajo de eso un conteo de tres cifras se
+               recorta y "150" se dibuja como "0", que no es una etiqueta
+               apretada sino un numero equivocado. */
             width={44}
             allowDecimals={false}
+            /* Cuatro marcas y no las que decida Recharts: con el lienzo mas bajo,
+               la escala automatica llegaba a apilar seis etiquetas de 11px. */
+            tickCount={4}
           />
           <Tooltip content={<TooltipBox />} cursor={{ stroke: 'hsl(var(--chart-grid))' }} />
           <Area
@@ -195,6 +231,10 @@ export function ActivityByDayChart({
             stroke="var(--chart-1)"
             strokeWidth={2}
             fill="url(#fadeActivity)"
+            /* Punto solo en el ultimo dato: marca el valor vivo sin sembrar la
+               linea de circulos que compiten con la propia serie. */
+            dot={false}
+            activeDot={{ r: 3.5, strokeWidth: 0 }}
             /* Serie unica: el titulo la nombra, no hace falta leyenda. */
             name="Eventos"
           />
@@ -208,8 +248,10 @@ export function ActivityByDayChart({
 
 export function ActivityByHourChart({
   data,
+  delay,
 }: {
   data: { hour: number; event_count: number }[]
+  delay?: number
 }) {
   // Se rellenan las 24 horas: si solo se dibujan las que tienen datos, el eje
   // miente sobre la jornada real y "no hubo actividad a las 3am" se vuelve
@@ -229,29 +271,36 @@ export function ActivityByHourChart({
       isEmpty={data.length === 0}
       emptyTitle="Sin datos horarios"
       emptyDescription="Se necesita al menos un dia de telemetria para construir este reporte."
+      delay={delay}
     >
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={shaped} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+        <BarChart data={shaped} margin={{ top: 6, right: 6, bottom: 0, left: -14 }}>
           <XAxis
             dataKey="label"
             tick={AXIS_STYLE}
             tickLine={false}
             axisLine={{ stroke: 'hsl(var(--chart-grid))' }}
-            interval={2}
+            /* Una de cada cuatro horas: con el lienzo mas estrecho, una de cada
+               tres etiquetas ya se tocaban entre si en pantallas de 13". */
+            interval={3}
           />
           <YAxis
             tick={AXIS_STYLE}
             tickLine={false}
             axisLine={false}
+            /* 44px y no menos: por debajo de eso un conteo de tres cifras se
+               recorta y "150" se dibuja como "0", que no es una etiqueta
+               apretada sino un numero equivocado. */
             width={44}
             allowDecimals={false}
+            tickCount={4}
           />
           <Tooltip
             content={<TooltipBox />}
             cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
           />
-          {/* Radio 4 en el extremo del dato, anclado a la linea base. */}
-          <Bar dataKey="event_count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={18} />
+          {/* Radio 3 en el extremo del dato, anclado a la linea base. */}
+          <Bar dataKey="event_count" fill="var(--chart-1)" radius={[3, 3, 0, 0]} maxBarSize={12} />
         </BarChart>
       </ResponsiveContainer>
     </ChartFrame>
@@ -274,6 +323,7 @@ export function RankingChart({
   unit,
   emptyTitle,
   emptyDescription,
+  delay,
 }: {
   title: string
   description?: string
@@ -282,6 +332,7 @@ export function RankingChart({
   unit: string
   emptyTitle: string
   emptyDescription: string
+  delay?: number
 }) {
   const max = Math.max(1, ...data.map((d) => Number(d.event_count)))
 
@@ -294,34 +345,40 @@ export function RankingChart({
       isEmpty={data.length === 0}
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
+      delay={delay}
     >
       {/*
         Barras en HTML y no en Recharts: con etiquetas directas en cada fila el
         valor siempre es legible sin pasar el cursor, y el ancho del nombre no
         obliga a reservar un margen izquierdo fijo que descuadra la tarjeta.
+
+        Nombre y valor van SOBRE la barra, no encima de ella: apilados gastaban
+        dos filas por categoria y ocho categorias hacian la tarjeta mas alta que
+        las graficas de al lado. La barra pasa a ser el fondo de su propia
+        etiqueta, que es lo que permite bajar de 8 filas a la mitad de alto.
       */}
-      <ul className="space-y-2">
-        {data.map((row) => {
+      <ul className="space-y-1">
+        {data.map((row, i) => {
           const value = Number(row.event_count)
           const name = String(row[nameKey])
           return (
-            <li key={name}>
-              <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
+            <li
+              key={name}
+              className="relative overflow-hidden rounded-md motion-safe:animate-rise"
+              style={{ animationDelay: `${(delay ?? 0) + i * 40}ms` }}
+            >
+              <div
+                aria-hidden
+                className="absolute inset-y-0 left-0 rounded-md bg-primary-subtle transition-[width] duration-500"
+                style={{ width: `${Math.max(3, (value / max) * 100)}%` }}
+              />
+              <div className="relative flex items-baseline justify-between gap-3 px-2 py-1.5 text-[0.6875rem]">
                 <span className="truncate font-mono text-foreground" title={name}>
                   {name}
                 </span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
                   {value.toLocaleString('es-CO')} {unit}
                 </span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.max(2, (value / max) * 100)}%`,
-                    backgroundColor: 'var(--chart-1)',
-                  }}
-                />
               </div>
             </li>
           )
@@ -344,8 +401,10 @@ const CATEGORY_COLORS = [
 
 export function CategoryDonutChart({
   data,
+  delay,
 }: {
   data: { category: string; event_count: number }[]
+  delay?: number
 }) {
   /*
    * Se pliega la cola en "Otras" para no pasar de 6 porciones.
@@ -374,17 +433,24 @@ export function CategoryDonutChart({
       isEmpty={data.length === 0}
       emptyTitle="Sin aperturas de aplicacion registradas"
       emptyDescription="La categoria la asigna el agente al detectar el proceso."
+      delay={delay}
     >
       <div className="flex flex-wrap items-center gap-4">
-        <div className="shrink-0">
-          <ResponsiveContainer width={150} height={150}>
+        {/*
+          El hueco del donut deja de estar vacio: lleva el total. Es el dato que
+          antes obligaba a sumar la leyenda a ojo, y ocupa espacio que ya estaba
+          reservado — bajar el diametro sin darle uso solo habria dejado un
+          agujero mas pequeño.
+        */}
+        <div className="relative shrink-0">
+          <ResponsiveContainer width={116} height={116}>
             <PieChart>
               <Pie
                 data={shaped}
                 dataKey="event_count"
                 nameKey="category"
-                innerRadius={42}
-                outerRadius={70}
+                innerRadius={34}
+                outerRadius={55}
                 /* 2px de separacion entre porciones: nunca un borde dibujado. */
                 paddingAngle={2}
                 stroke="hsl(var(--surface))"
@@ -397,21 +463,32 @@ export function CategoryDonutChart({
               <Tooltip content={<TooltipBox />} />
             </PieChart>
           </ResponsiveContainer>
+          <div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+            aria-hidden
+          >
+            <span className="text-sm font-semibold tabular-nums tracking-tight text-foreground">
+              {total.toLocaleString('es-CO')}
+            </span>
+            <span className="text-[0.625rem] uppercase tracking-[0.08em] text-muted-foreground">
+              eventos
+            </span>
+          </div>
         </div>
 
-        <ul className="min-w-40 flex-1 space-y-1.5">
+        <ul className="min-w-36 flex-1 space-y-1">
           {shaped.map((entry, index) => (
-            <li key={entry.category} className="flex items-center gap-2 text-xs">
+            <li key={entry.category} className="flex items-center gap-2 text-[0.6875rem]">
               <span
                 aria-hidden
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
               />
               <span className="flex-1 truncate text-foreground">{entry.category}</span>
               <span className="shrink-0 tabular-nums text-muted-foreground">
                 {Math.round((entry.event_count / total) * 100)}%
               </span>
-              <span className="w-10 shrink-0 text-right tabular-nums text-muted-foreground">
+              <span className="w-9 shrink-0 text-right tabular-nums text-muted-foreground">
                 {entry.event_count.toLocaleString('es-CO')}
               </span>
             </li>

@@ -17,12 +17,27 @@ const DOT_TONES: Record<Tone, string> = {
   success: 'bg-success',
 }
 
-/** Circulo del icono. Fondo `subtle` + simbolo solido: el mismo par que los Badge. */
+/** Cuadro del icono. Fondo `subtle` + simbolo solido: el mismo par que los Badge. */
 const ICON_TONES: Record<Tone, string> = {
   neutral: 'bg-primary-subtle text-primary',
   critical: 'bg-critical-subtle text-critical',
   warning: 'bg-warning-subtle text-warning',
   success: 'bg-success-subtle text-success',
+}
+
+/**
+ * Filete superior de la tarjeta.
+ *
+ * Sustituye al peso que antes aportaba el tamaño: con la cifra reducida, es
+ * este trazo el que identifica el estado de un vistazo a lo largo de la fila.
+ * Arranca al 40% de opacidad y se satura al pasar el cursor, asi que en reposo
+ * es un matiz y no cuatro lineas de color compitiendo entre si.
+ */
+const RAIL_TONES: Record<Tone, string> = {
+  neutral: 'bg-primary',
+  critical: 'bg-critical',
+  warning: 'bg-warning',
+  success: 'bg-success',
 }
 
 /** Trazo del mini-visual. Sigue al tono, que ya expresa el estado de la metrica. */
@@ -132,8 +147,12 @@ function Bars({ data }: { data: number[] }) {
  * de metrica en vez de por su estado haria que el tablero se viera igual de rojo
  * un dia tranquilo que uno malo.
  *
- * La cifra domina la tarjeta (44px) porque el panel se consulta de un vistazo:
- * el analista lee cuatro numeros y solo baja al detalle si alguno le llama.
+ * DENSIDAD: la cifra ocupa 28px, no 44px. Cuatro numeros a 44px empujan el resto
+ * del tablero por debajo del pliegue, y la jerarquia de un resumen no la da el
+ * tamaño absoluto sino el CONTRASTE con lo que tiene al lado: a 28px sobre una
+ * etiqueta de 11px la cifra sigue dominando, y caben las graficas en la misma
+ * pantalla. La etiqueta va en versalitas y con `tracking` abierto — a ese cuerpo
+ * es lo que la mantiene legible como rotulo en vez de como texto corrido.
  *
  * `icon`, `delta` y `visual` son opcionales. Sin ellos la tarjeta sigue siendo
  * valida: hay metricas que no tienen historico que dibujar, y una zona de grafica
@@ -147,6 +166,7 @@ export function StatTile({
   icon: Icon,
   delta,
   visual,
+  delay = 0,
 }: {
   label: string
   value: string | number
@@ -155,65 +175,109 @@ export function StatTile({
   icon?: LucideIcon
   delta?: StatDelta
   visual?: StatVisual
+  /** Retardo de entrada en ms. Escalona la fila sin que la pagina orqueste nada. */
+  delay?: number
 }) {
   const DeltaIcon =
     delta?.direction === 'up' ? ArrowUpRight : delta?.direction === 'down' ? ArrowDownRight : Minus
   const series = visual?.data?.length ? visual.data : null
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border/60 bg-surface p-5 shadow-card sm:p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 pt-1">
+    <div
+      style={delay ? { animationDelay: `${delay}ms` } : undefined}
+      className={cn(
+        'group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-surface p-4 shadow-card',
+        // El realce al pasar el cursor es de 2px. Suficiente para que la tarjeta
+        // responda; no tanto como para que la fila entera parezca inestable.
+        'transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-lifted',
+        'motion-reduce:transform-none motion-reduce:transition-none',
+        'motion-safe:animate-rise'
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'absolute inset-x-0 top-0 h-px opacity-40 transition-opacity duration-200 group-hover:opacity-100',
+          RAIL_TONES[tone]
+        )}
+      />
+
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
           {Icon ? null : (
-            <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT_TONES[tone])} aria-hidden />
+            <span
+              className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', DOT_TONES[tone])}
+              aria-hidden
+            />
           )}
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          {/*
+            La etiqueta ENVUELVE, no se trunca. En telefono las tarjetas van a
+            dos columnas y "Equipos con agente" no cabe en una linea: truncada
+            queda en "Equipos con...", que es justo la parte que no identifica
+            la metrica. Dos lineas de 11px cuestan 14px; una etiqueta ambigua
+            cuesta la tarjeta entera.
+          */}
+          <p className="text-[0.6875rem] font-semibold uppercase leading-tight tracking-[0.08em] text-muted-foreground">
+            {label}
+          </p>
         </div>
         {Icon ? (
+          // Cuadro redondeado y no circulo: a 28px un circulo deja el simbolo
+          // con menos area util y la fila de tarjetas pierde alineacion optica
+          // contra los bordes rectos del resto del tablero.
           <span
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
               ICON_TONES[tone]
             )}
             aria-hidden
           >
-            <Icon className="h-[1.125rem] w-[1.125rem]" />
+            <Icon className="h-3.5 w-3.5" />
           </span>
         ) : null}
       </div>
 
-      <p className={cn('mt-3 text-4xl font-semibold tabular-nums tracking-tight', VALUE_TONES[tone])}>
-        {value}
-      </p>
-
       {/*
-        Pie anclado abajo (`mt-auto`). Las tarjetas de una fila comparten alto
-        —lo impone la rejilla— y sin anclaje el contenido se apelotona arriba y
-        deja un hueco muerto bajo la cifra que se lee como algo que falta por
-        cargar. Anclado, el aire queda ENTRE la cifra y su contexto, que es
-        justamente la jerarquia que se quiere.
+        Cifra y variacion comparten linea base. Apiladas gastaban una fila entera
+        para dos datos que se leen juntos, y era buena parte del alto sobrante.
       */}
-      <div className="mt-auto">
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <p className={cn('text-2xl font-semibold tabular-nums tracking-tight', VALUE_TONES[tone])}>
+          {value}
+        </p>
         {delta ? (
           <p
             className={cn(
-              'mt-3 flex items-center gap-1 text-sm font-medium tabular-nums',
+              'flex items-center gap-0.5 text-xs font-medium tabular-nums',
               DELTA_INTENTS[delta.intent ?? 'neutral']
             )}
           >
-            <DeltaIcon className="h-4 w-4 shrink-0" aria-hidden />
+            <DeltaIcon className="h-3 w-3 shrink-0" aria-hidden />
             {delta.value}
           </p>
         ) : null}
+      </div>
 
-        {hint ? <p className="mt-2 text-xs leading-snug text-muted-foreground">{hint}</p> : null}
+      {/*
+        La pista pegada a la cifra; SOLO la mini-grafica se ancla abajo.
+        Las tarjetas de una fila comparten alto —lo impone la rejilla— y la que
+        lleva grafica es ~30px mas alta que las demas. Si se ancla abajo el
+        bloque entero, en las tarjetas sin grafica ese sobrante se abre como un
+        hueco ENTRE la cifra y su pista, que se lee como contenido a medio
+        cargar. Anclando solo la grafica, el sobrante queda al pie de la tarjeta
+        y se lee como margen.
+      */}
+      {hint ? (
+        <p className="mt-1.5 text-[0.6875rem] leading-snug text-muted-foreground">{hint}</p>
+      ) : null}
 
+      <div className="mt-auto">
         {series ? (
-          <div className={cn('mt-4 pt-1', VISUAL_TONES[tone])}>
+          <div className={cn('pt-2.5', VISUAL_TONES[tone])}>
             <svg
               viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
               preserveAspectRatio="none"
-              className="h-9 w-full"
+              className="h-6 w-full"
               role={visual?.label ? 'img' : 'presentation'}
               aria-label={visual?.label}
               aria-hidden={visual?.label ? undefined : true}
