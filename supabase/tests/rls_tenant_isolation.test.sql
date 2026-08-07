@@ -8,9 +8,13 @@
 -- alguien olvido al agregar una tabla. Esta suite convierte ese olvido en un
 -- build rojo.
 --
--- ESTADO: escrita, PENDIENTE DE EJECUCION (no hay proyecto Supabase creado ni
--- Docker local para `supabase start`). No dar por buena ninguna afirmacion de
--- seguridad de este esquema hasta que esta suite corra en verde.
+-- ESTADO: en ejecucion automatica desde el 2026-08-07. La corre el job
+-- `contrato` de .github/workflows/ci.yml contra un Supabase local y efimero.
+--
+-- La primera ejecucion real destapo que el helper `tests.impersonate` no era
+-- alcanzable tras la primera llamada, y que por tanto SEIS de las diecisiete
+-- comprobaciones nunca se habian evaluado. Es exactamente el motivo por el que
+-- una suite que no corre no vale nada: parecia completa.
 -- =============================================================================
 
 begin;
@@ -73,6 +77,15 @@ begin
   execute 'set local role authenticated';
 end;
 $$;
+
+-- El helper se llama VARIAS veces a lo largo de la suite, y a partir de la
+-- primera el rol de sesion ya es `authenticated`, que no tiene USAGE sobre el
+-- esquema `tests`. Sin estos grants la segunda llamada muere con
+-- "permission denied for schema tests" y pgTAP aborta con "Bad plan: you
+-- planned 17 tests but ran 11" — un mensaje que apunta al plan y no al permiso,
+-- que es lo que costo encontrar la primera vez que esta suite llego a correr.
+grant usage on schema tests to public;
+grant execute on function tests.impersonate(uuid, text) to public;
 
 -- =============================================================================
 -- 1. Aislamiento de lectura entre tenants
