@@ -15,7 +15,7 @@ import type { Json } from '@/shared/types/database'
  * indefinidamente, y el equipo desaparece del panel sin que nadie sepa por que.
  */
 export async function POST(request: Request) {
-  return withAgentRequest(request, ingestRequestSchema, async (body, { apiKey, client }) => {
+  return withAgentRequest(request, ingestRequestSchema, async (body, { credential, client }) => {
     // Validacion por evento contra el contrato de telemetria. Los que no encajan
     // se descartan aqui con su motivo; la base repite las comprobaciones
     // criticas porque este handler es evitable llamando al RPC directamente.
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     // limite de tasa. Se podia martillear la ingesta indefinidamente sin coste.
     // La llamada se hace siempre; el RPC acepta un arreglo vacio sin problema.
     const { data, error } = await client.rpc('agent_ingest', {
-      p_api_key: apiKey,
+      p_credential: credential,
       p_endpoint_id: body.endpoint_id,
       // El cast es necesario porque `Json` no admite `unknown` en sus valores,
       // y el payload ya paso por el esquema de telemetria: lo que va aqui es
@@ -51,11 +51,18 @@ export async function POST(request: Request) {
     const row = Array.isArray(data) ? data[0] : data
 
     return NextResponse.json({
+      // Los duplicados van DENTRO de `accepted`: el agente usa este numero para
+      // purgar su cola, y devolverle un reenvio como rechazado lo dejaria
+      // reintentando el mismo evento para siempre.
       accepted: row?.accepted ?? 0,
       // Se suman los descartados por Zod y los descartados por la base (fechas
       // fuera de la ventana de retencion). El agente necesita el total real para
       // no dar por enviados eventos que nunca entraron.
       rejected: (row?.rejected ?? 0) + rejected.length,
+      // Informativo, no accionable: un valor alto y sostenido significa que el
+      // agente no esta purgando bien su cola tras confirmar un lote, y sin este
+      // dato ese fallo es invisible desde fuera.
+      duplicates: row?.duplicates ?? 0,
       details: rejected.length ? rejected : undefined,
     })
   })

@@ -14,7 +14,23 @@
  * era inalcanzable. Lo que se despliega es HTTP; hay que probar HTTP.
  */
 const BASE = 'http://localhost:3000/api/agent'
+
+/**
+ * Credencial de la ORGANIZACION (`nrt_live_…`). Solo sirve para dar de alta un
+ * equipo: el resto de rutas exige la credencial propia que devuelve el alta.
+ */
 const KEY = process.argv[2]
+
+/** Credencial del EQUIPO (`nrt_ep_…`). La rellena el enrolamiento. */
+let EP_KEY = null
+
+/** Identificador de deduplicacion. El agente real lo genera y lo CONSERVA. */
+const evt = (event_type, payload = {}, id = crypto.randomUUID()) => ({
+  event_type,
+  occurred_at: new Date().toISOString(),
+  client_event_id: id,
+  payload,
+})
 
 let pass = 0
 let fail = 0
@@ -24,7 +40,8 @@ function check(ok, label, detail = '') {
   else { fail++; console.log(`FALLO  ${label}${detail ? ` -> ${detail}` : ''}`) }
 }
 
-async function post(path, body, key = KEY) {
+async function post(path, body, key = undefined) {
+  if (key === undefined) key = EP_KEY ?? KEY
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     headers: {
@@ -70,44 +87,72 @@ const enroll = await post('/enroll', {
   os_version: 'Windows 11 Pro 24H2',
   agent_version: '1.0.0',
   user: 'mrestrepo',
-})
+}, KEY)
 check(enroll.status === 200 && enroll.json?.endpoint_id, 'POST /enroll registra el equipo',
   JSON.stringify(enroll.json))
 const endpointId = enroll.json?.endpoint_id
 check(Boolean(enroll.json?.profile_id), '/enroll asigna el perfil por defecto')
+check(/^nrt_ep_[0-9a-f]{64}$/.test(enroll.json?.agent_credential ?? ''),
+  '/enroll devuelve la credencial propia del equipo')
+EP_KEY = enroll.json?.agent_credential
 
 const reEnroll = await post('/enroll', {
   machine_fingerprint: 'fp-http-e2e-0001',
   hostname: 'HTTP-E2E-01',
   agent_version: '1.0.1',
-})
+}, KEY)
 check(reEnroll.json?.endpoint_id === endpointId, 're-enroll devuelve el MISMO equipo')
+check(reEnroll.json?.agent_credential !== EP_KEY,
+  're-enroll ROTA la credencial del equipo')
+
+const credencialVieja = EP_KEY
+EP_KEY = reEnroll.json?.agent_credential
+
+const conVieja = await post('/heartbeat', { endpoint_id: endpointId }, credencialVieja)
+check(conVieja.status === 401, 'la credencial anterior deja de servir tras rotar',
+  `status ${conVieja.status}`)
 
 // --- validacion de cuerpo ----------------------------------------------------
-const badBody = await post('/enroll', { hostname: 'X' })
+const badBody = await post('/enroll', { hostname: 'X' }, KEY)
 check(badBody.status === 400, 'cuerpo sin huella de maquina devuelve 400')
 
-const shortFp = await post('/enroll', { machine_fingerprint: 'abc', hostname: 'X' })
+const shortFp = await post('/enroll', { machine_fingerprint: 'abc', hostname: 'X' }, KEY)
 check(shortFp.status === 400, 'huella demasiado corta devuelve 400')
 
 // --- ingesta -----------------------------------------------------------------
-const ingest = await post('/events', {
-  endpoint_id: endpointId,
-  events: [
-    { event_type: 'file_created', occurred_at: now(), payload: { path: 'C:\\a\\b.docx', user: 'mrestrepo' } },
-    { event_type: 'web_visit', occurred_at: now(), payload: { domain: 'wetransfer.com' } },
-    { event_type: 'usb_connected', occurred_at: now(), payload: { serial: 'SANDISK-99', enforcement: 'block' } },
-  ],
-})
+const lote = [
+  evt('file_created', { path: 'C:\\a\\b.docx', user: 'mrestrepo' }),
+  evt('web_visit', { domain: 'wetransfer.com' }),
+  evt('usb_connected', { serial: 'SANDISK-99', enforcement: 'block' }),
+]
+
+const ingest = await post('/events', { endpoint_id: endpointId, events: lote })
 check(ingest.json?.accepted === 3, 'POST /events acepta un lote valido',
   JSON.stringify(ingest.json))
+check(ingest.json?.duplicates === 0, 'un lote nuevo no reporta duplicados')
+
+// --- idempotencia ------------------------------------------------------------
+// Reenviar el MISMO lote es lo que hace un agente cuya respuesta se perdio por
+// timeout. Sin deduplicacion, esto insertaba todo otra vez.
+const reenvio = await post('/events', { endpoint_id: endpointId, events: lote })
+check(reenvio.json?.accepted === 3 && reenvio.json?.duplicates === 3,
+  'reenviar el mismo lote no duplica y se cuenta como aceptado',
+  JSON.stringify(reenvio.json))
+
+// Mismo contenido, client_event_id nuevo: es un evento DISTINTO y debe entrar.
+const mismoContenido = await post('/events', {
+  endpoint_id: endpointId,
+  events: [evt('web_visit', { domain: 'wetransfer.com' })],
+})
+check(mismoContenido.json?.accepted === 1 && mismoContenido.json?.duplicates === 0,
+  'mismo contenido con identificador nuevo SI entra')
 
 const mixed = await post('/events', {
   endpoint_id: endpointId,
   events: [
-    { event_type: 'logon', occurred_at: now(), payload: { user: 'mrestrepo' } },
-    { event_type: 'tipo_inexistente', occurred_at: now(), payload: {} },
-    { event_type: 'web_visit', occurred_at: now(), payload: { domain: '' } },
+    evt('logon', { user: 'mrestrepo' }),
+    evt('tipo_inexistente', {}),
+    evt('web_visit', { domain: '' }),
   ],
 })
 check(mixed.json?.accepted === 1 && mixed.json?.rejected === 2,
@@ -115,11 +160,41 @@ check(mixed.json?.accepted === 1 && mixed.json?.rejected === 2,
 check(Array.isArray(mixed.json?.details) && mixed.json.details[0]?.reason,
   'se informa el motivo de cada descarte')
 
+const sinId = await post('/events', {
+  endpoint_id: endpointId,
+  events: [{ event_type: 'logon', occurred_at: now(), payload: {} }],
+})
+check(sinId.status === 400, 'un evento sin client_event_id se rechaza',
+  `status ${sinId.status}`)
+
 const tooBig = await post('/events', {
   endpoint_id: endpointId,
-  events: Array.from({ length: 1001 }, () => ({ event_type: 'logon', occurred_at: now() })),
+  events: Array.from({ length: 1001 }, () => evt('logon')),
 })
 check(tooBig.status === 400, 'lote de 1001 eventos devuelve 400')
+
+// --- aislamiento entre equipos ----------------------------------------------
+// El hueco que cerro la credencial por equipo: con la clave del tenant, un
+// portatil podia escribir telemetria en nombre de cualquier otro.
+const otro = await post('/enroll', {
+  machine_fingerprint: 'fp-http-e2e-0002',
+  hostname: 'HTTP-E2E-02',
+}, KEY)
+const otroId = otro.json?.endpoint_id
+
+const suplantacion = await post('/events', {
+  endpoint_id: otroId,
+  events: [evt('logon', { user: 'atacante' })],
+})
+check(suplantacion.status === 401,
+  'un equipo NO puede escribir telemetria de otro equipo del mismo tenant',
+  `status ${suplantacion.status}`)
+
+const conClaveDeTenant = await post('/events',
+  { endpoint_id: endpointId, events: [evt('logon')] }, KEY)
+check(conClaveDeTenant.status === 401,
+  'la credencial de organizacion ya no sirve para ingerir',
+  `status ${conClaveDeTenant.status}`)
 
 const foreign = await post('/events', { endpoint_id: crypto.randomUUID(), events: [] })
 check(foreign.status === 400 || foreign.status === 401,

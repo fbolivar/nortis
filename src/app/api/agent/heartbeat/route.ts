@@ -13,9 +13,9 @@ import { heartbeatRequestSchema } from '@/shared/schemas/agent-api'
  * endurecerse sin esperar al siguiente ciclo de politica.
  */
 export async function POST(request: Request) {
-  return withAgentRequest(request, heartbeatRequestSchema, async (body, { apiKey, client }) => {
+  return withAgentRequest(request, heartbeatRequestSchema, async (body, { credential, client }) => {
     const { data, error } = await client.rpc('agent_heartbeat', {
-      p_api_key: apiKey,
+      p_credential: credential,
       p_endpoint_id: body.endpoint_id,
       p_agent_version: body.agent_version ?? null,
       p_user: body.user ?? null,
