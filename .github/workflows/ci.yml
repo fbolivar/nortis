@@ -1,0 +1,78 @@
+name: CI
+
+# Se ejecuta en cada PR hacia main y en cada push a main. Lo primero es la red
+# de seguridad antes de fusionar; lo segundo detecta si algo entro por otra via
+# (un push directo, una fusion desde la interfaz de GitHub).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Un push nuevo sobre la misma rama cancela la ejecucion anterior: no tiene
+# sentido gastar minutos validando un commit que ya fue reemplazado.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificacion:
+    name: Lint, tipos y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` y no `npm install`: instala EXACTAMENTE lo que fija el archivo
+      # de bloqueo y falla si package.json y el lock divergen. En un producto de
+      # seguridad, que CI resuelva versiones distintas a las del desarrollador
+      # significa que lo que se valida no es lo que se despliega.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Verificacion de tipos
+        run: npm run typecheck
+
+      # El build NO necesita credenciales: se comprobo que compila sin
+      # variables de entorno. Las claves de Supabase se leen en tiempo de
+      # ejecucion, no de compilacion, asi que CI no maneja ningun secreto — y lo
+      # que no existe no se puede filtrar en un log de ejecucion.
+      - name: Build de produccion
+        run: npm run build
+
+  auditoria:
+    name: Auditoria de dependencias
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Requisito A.6.7. Umbral en `high`: fallar ante cualquier vulnerabilidad
+      # baja convertiria la auditoria en ruido que todo el mundo aprende a
+      # ignorar, y una alerta que se ignora no es una alerta.
+      #
+      # Es un job aparte del anterior a proposito: que una dependencia tenga un
+      # CVE no debe impedir ver si el codigo compila, y al reves. Dos señales
+      # distintas, dos casillas distintas.
+      - name: npm audit
+        run: npm audit --audit-level=high

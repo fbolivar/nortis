@@ -2,9 +2,11 @@
 /node_modules
 /.pnp
 .pnp.js
-yarn.lock
-package-lock.json
-pnpm-lock.yaml
+# El archivo de bloqueo SI se versiona. La plantilla lo ignoraba, y para un
+# producto de seguridad eso es un error: sin el, CI y cada desarrollador pueden
+# resolver versiones distintas de las dependencias transitivas, `npm ci` no
+# funciona, y ni `npm audit` ni Dependabot pueden razonar sobre lo que
+# realmente se instala. La cadena de suministro es superficie de ataque.
 
 # Testing
 /coverage
