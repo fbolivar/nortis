@@ -64,7 +64,7 @@ export function UsersTable({
   ).length
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
       {adminsWithoutMfa > 0 ? (
         <Callout tone="warning" title="Administradores sin segundo factor">
           {adminsWithoutMfa}{' '}
@@ -144,13 +144,6 @@ export function UsersTable({
       </Card>
 
       <FormError>{error}</FormError>
-
-      <Callout tone="neutral" title="Invitaciones pendientes de implementar">
-        Por ahora no hay forma de sumar a un segundo usuario a esta organizacion. Quien
-        se registre por su cuenta creara <strong>su propia organizacion</strong>, no se
-        unira a esta. Falta la tabla de invitaciones, que no forma parte del modelo de
-        datos aprobado.
-      </Callout>
     </div>
   )
 }
