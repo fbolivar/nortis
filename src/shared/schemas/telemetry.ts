@@ -144,7 +144,19 @@ const sessionPayload = z
   .object({
     user: z.string().max(255).optional(),
     session_type: z.enum(['console', 'remote', 'unlock']).optional(),
+    /**
+     * Solo llega cuando el agente pudo medirlo. En una sesion de consola Windows
+     * no le da esa medida a un servicio, asi que ahi la ausencia se detecta por
+     * el bloqueo de pantalla y este campo no viene: su ausencia significa "no se
+     * midio", nunca "cero segundos".
+     */
     idle_seconds: z.number().int().nonnegative().optional(),
+    /**
+     * De donde salio la ausencia en idle_start / idle_end.
+     * `locked` es un acto deliberado del usuario; `idle` es un umbral de tiempo
+     * sin teclado ni raton. Para un reporte de uso no son lo mismo.
+     */
+    reason: z.enum(['locked', 'idle']).optional(),
   })
   .passthrough()
 
