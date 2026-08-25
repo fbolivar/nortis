@@ -27,6 +27,43 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_commands: {
+        Row: {
+          id: string
+          organization_id: string
+          endpoint_id: string
+          kind: 'restore_file' | 'delete_quarantine'
+          quarantine_id: string
+          original_path: string
+          status: 'pending' | 'sent' | 'done' | 'failed'
+          error: string | null
+          created_by: string | null
+          created_at: string
+          sent_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          endpoint_id: string
+          kind: 'restore_file' | 'delete_quarantine'
+          quarantine_id: string
+          original_path: string
+          status?: 'pending' | 'sent' | 'done' | 'failed'
+          error?: string | null
+          created_by?: string | null
+          created_at?: string
+          sent_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          status?: 'pending' | 'sent' | 'done' | 'failed'
+          error?: string | null
+          sent_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
       agent_releases: {
         Row: {
           id: string
@@ -734,6 +771,29 @@ export type Database = {
           p_download_url: string
           p_size_bytes?: number
           p_notes?: string
+        }
+        Returns: string
+      }
+      agent_poll_commands: {
+        Args: { p_credential: string; p_endpoint_id: string }
+        Returns: { id: string; kind: string; quarantine_id: string; original_path: string }[]
+      }
+      agent_report_command: {
+        Args: {
+          p_credential: string
+          p_endpoint_id: string
+          p_command_id: string
+          p_status: string
+          p_error?: string
+        }
+        Returns: undefined
+      }
+      create_quarantine_action: {
+        Args: {
+          p_endpoint_id: string
+          p_kind: string
+          p_quarantine_id: string
+          p_original_path: string
         }
         Returns: string
       }

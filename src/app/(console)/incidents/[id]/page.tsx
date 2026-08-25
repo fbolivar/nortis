@@ -8,6 +8,10 @@ import { Badge, Card, CardContent, CardHeader, CardTitle } from '@/shared/compon
 import { formatDateTime } from '@/lib/utils'
 import { IncidentReview } from '@/features/incidents/components/incident-review'
 import {
+  QuarantineActions,
+  type QuarantinedFile,
+} from '@/features/incidents/components/quarantine-actions'
+import {
   CHANNEL_LABEL,
   ENFORCEMENT_LABEL,
   SEVERITY_LABEL,
@@ -21,6 +25,90 @@ function field(snapshot: unknown, key: string): string | null {
   const value = (snapshot as Record<string, unknown>)[key]
   if (value == null) return null
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
+
+/** Lee un valor anidado string del snapshot (p. ej. window.from) sin confiar en su forma. */
+function nested(snapshot: unknown, outer: string, inner: string): string | null {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null
+  const o = (snapshot as Record<string, unknown>)[outer]
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null
+  const value = (o as Record<string, unknown>)[inner]
+  return typeof value === 'string' ? value : null
+}
+
+/**
+ * Reune los archivos que el agente retiro a cuarentena para este incidente. Los
+ * datos concretos —identificador de cuarentena y ruta original— viven en los
+ * eventos de la ventana del incidente, no en su snapshot agregado. A cada archivo
+ * se le adjunta el estado del ultimo comando que la consola le encargo, para que
+ * el revisor vea si una restauracion ya esta en marcha o fallo.
+ */
+async function loadQuarantineFiles(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  incident: {
+    endpoint_id: string
+    enforcement_action: string | null
+    event_snapshot: unknown
+  },
+): Promise<QuarantinedFile[]> {
+  if (incident.enforcement_action !== 'quarantine') return []
+
+  const from = nested(incident.event_snapshot, 'window', 'from')
+  const to = nested(incident.event_snapshot, 'window', 'to')
+
+  let query = supabase
+    .from('activity_events')
+    .select('payload, occurred_at')
+    .eq('endpoint_id', incident.endpoint_id)
+    .in('event_type', ['file_created', 'file_modified'])
+    .not('payload->>quarantine_id', 'is', null)
+    .order('occurred_at', { ascending: false })
+    .limit(50)
+  if (from) query = query.gte('occurred_at', from)
+  if (to) query = query.lte('occurred_at', to)
+
+  const { data: events } = await query
+  if (!events || events.length === 0) return []
+
+  // Un mismo archivo puede figurar en varios eventos (creado y luego modificado):
+  // se conserva el mas reciente por identificador de cuarentena.
+  const porId = new Map<string, { originalPath: string; occurredAt: string }>()
+  for (const e of events) {
+    const payload = e.payload
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) continue
+    const p = payload as Record<string, unknown>
+    const qid = p.quarantine_id
+    if (typeof qid !== 'string' || !qid || porId.has(qid)) continue
+    porId.set(qid, {
+      originalPath: typeof p.path === 'string' ? p.path : '(ruta desconocida)',
+      occurredAt: e.occurred_at,
+    })
+  }
+  if (porId.size === 0) return []
+
+  const { data: commands } = await supabase
+    .from('agent_commands')
+    .select('quarantine_id, kind, status, error')
+    .eq('endpoint_id', incident.endpoint_id)
+    .in('quarantine_id', [...porId.keys()])
+    .order('created_at', { ascending: false })
+
+  const ultimo = new Map<string, NonNullable<typeof commands>[number]>()
+  for (const c of commands ?? []) {
+    if (!ultimo.has(c.quarantine_id)) ultimo.set(c.quarantine_id, c)
+  }
+
+  return [...porId.entries()].map(([quarantineId, f]) => {
+    const cmd = ultimo.get(quarantineId)
+    return {
+      quarantineId,
+      originalPath: f.originalPath,
+      occurredAt: f.occurredAt,
+      commandKind: cmd?.kind ?? null,
+      commandStatus: cmd?.status ?? null,
+      commandError: cmd?.error ?? null,
+    }
+  })
 }
 
 export default async function IncidentDetailPage({
@@ -55,6 +143,13 @@ export default async function IncidentDetailPage({
   const occurrences = field(incident.event_snapshot, 'occurrences')
   const sample = field(incident.event_snapshot, 'sample')
   const actor = field(incident.event_snapshot, 'user')
+
+  // Cuando el agente retiro documentos a cuarentena, se ofrece restaurarlos o
+  // borrarlos. Los archivos concretos —con su identificador de cuarentena— estan
+  // en los eventos, no en el snapshot agregado del incidente: se leen de la
+  // ventana temporal del incidente, y a cada uno se le adjunta el estado del
+  // ultimo comando que se le encargo (si hubo alguno).
+  const quarantineFiles = await loadQuarantineFiles(supabase, incident)
 
   return (
     <>
@@ -149,6 +244,14 @@ export default async function IncidentDetailPage({
             ) : null}
           </CardContent>
         </Card>
+
+        {quarantineFiles.length > 0 ? (
+          <QuarantineActions
+            endpointId={incident.endpoint_id}
+            files={quarantineFiles}
+            canReview={canReview}
+          />
+        ) : null}
 
         <IncidentReview
           incident={incident}
