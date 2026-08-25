@@ -23,9 +23,13 @@ import {
   resolveLiveStatus,
   type LiveStatus,
 } from '@/features/telemetry/components/endpoint-status'
+import { getSessionContext } from '@/features/auth/services/session'
+import { AgentInstallerButton } from '@/features/tenant/components/agent-installer-button'
 
 export default async function EndpointsPage() {
   const supabase = await createClient()
+  const session = await getSessionContext()
+  const canManage = session?.role === 'owner' || session?.role === 'admin'
 
   const { data, error } = await supabase
     .from('endpoints')
@@ -63,11 +67,15 @@ export default async function EndpointsPage() {
         title="Equipos"
         description={`${endpoints.length} estaciones con agente instalado`}
         actions={
-          <Link href="/settings/api-keys">
-            <Button size="sm" variant="secondary">
-              Desplegar agente
-            </Button>
-          </Link>
+          canManage ? (
+            <AgentInstallerButton />
+          ) : (
+            <Link href="/settings/api-keys">
+              <Button size="sm" variant="secondary">
+                Desplegar agente
+              </Button>
+            </Link>
+          )
         }
       />
 
@@ -121,11 +129,15 @@ export default async function EndpointsPage() {
             {endpoints.length === 0 ? (
               <EmptyState
                 title="Ningun equipo con agente"
-                description="Genere una credencial de agente e instale el paquete MSI en la primera estacion. El equipo aparecera aqui en cuanto se registre."
+                description="Descargue el instalador y ejecutelo en la primera estacion. Trae la credencial de enrolamiento y la clave de proteccion ya incluidas; el equipo aparecera aqui en cuanto se registre."
                 action={
-                  <Link href="/settings/api-keys">
-                    <Button size="sm">Generar credencial</Button>
-                  </Link>
+                  canManage ? (
+                    <AgentInstallerButton size="md" variant="primary" />
+                  ) : (
+                    <Link href="/settings/api-keys">
+                      <Button size="sm">Generar credencial</Button>
+                    </Link>
+                  )
                 }
               />
             ) : (
