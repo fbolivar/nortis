@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { CURRENT_AGENT_VERSION, MIN_AGENT_VERSION } from '@/shared/schemas/agent-api'
 import { POLICY_SCHEMA_VERSION } from '@/shared/schemas/policy'
 
@@ -10,19 +11,27 @@ import { POLICY_SCHEMA_VERSION } from '@/shared/schemas/policy'
  * caducada o revocada supiera que existe una version nueva — justo el caso en
  * que mas falta hace poder actualizarlo.
  *
- * PENDIENTE DELIBERADO: `download_url` y `sha256` van nulos hasta que exista el
- * pipeline que compile y FIRME el MSI. Se declaran ya en el contrato para que el
- * agente los consuma desde el primer dia, pero publicar una URL de descarga sin
- * hash ni firma seria peor que no publicar ninguna: el agente corre con
- * privilegios de sistema y reemplazaria su propio binario por lo que hubiera al
- * otro lado de esa URL.
+ * Si hay una version publicada (tabla agent_releases, marcada como actual),
+ * devuelve su numero, su sha256 y la URL firmada del MSI. Si no hay ninguna,
+ * cae a las constantes del contrato con download_url/sha256 nulos: el agente lo
+ * interpreta como "actualizacion armada pero inactiva" y no descarga nada.
+ *
+ * El agente SIEMPRE verifica el sha256 antes de aplicar: corre como LocalSystem
+ * y reemplaza su propio binario, asi que una URL sin hash comprobado seria
+ * entregarle el sistema a quien la controle.
  */
 export async function GET() {
+  const supabase = await createClient()
+
+  // Funcion SECURITY DEFINER ejecutable por anon: esta ruta no tiene sesion.
+  const { data } = await supabase.rpc('current_agent_release')
+  const release = data?.[0]
+
   return NextResponse.json({
-    current_version: CURRENT_AGENT_VERSION,
+    current_version: release?.version ?? CURRENT_AGENT_VERSION,
     minimum_supported_version: MIN_AGENT_VERSION,
     policy_schema_version: POLICY_SCHEMA_VERSION,
-    download_url: null,
-    sha256: null,
+    download_url: release?.download_url ?? null,
+    sha256: release?.sha256 ?? null,
   })
 }

@@ -27,6 +27,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_releases: {
+        Row: {
+          id: string
+          version: string
+          object_name: string
+          sha256: string
+          size_bytes: number | null
+          download_url: string
+          notes: string | null
+          is_current: boolean
+          published_by: string | null
+          published_at: string
+        }
+        Insert: {
+          id?: string
+          version: string
+          object_name: string
+          sha256: string
+          size_bytes?: number | null
+          download_url: string
+          notes?: string | null
+          is_current?: boolean
+          published_by?: string | null
+          published_at?: string
+        }
+        Update: {
+          id?: string
+          version?: string
+          object_name?: string
+          sha256?: string
+          size_bytes?: number | null
+          download_url?: string
+          notes?: string | null
+          is_current?: boolean
+          published_by?: string | null
+          published_at?: string
+        }
+        Relationships: []
+      }
       activity_daily_rollups: {
         Row: {
           day: string
@@ -669,6 +708,34 @@ export type Database = {
       report_top_domains: {
         Args: { p_days?: number; p_limit?: number }
         Returns: { domain: string; event_count: number; blocked_count: number }[]
+      }
+      report_connected_usb: {
+        Args: { p_days?: number }
+        Returns: {
+          serial: string | null
+          label: string | null
+          vendor_id: string | null
+          product_id: string | null
+          capacity_bytes: number | null
+          enforcement: string | null
+          veces: number
+          last_seen: string
+        }[]
+      }
+      current_agent_release: {
+        Args: never
+        Returns: { version: string; sha256: string; download_url: string }[]
+      }
+      set_current_agent_release: {
+        Args: {
+          p_version: string
+          p_object_name: string
+          p_sha256: string
+          p_download_url: string
+          p_size_bytes?: number
+          p_notes?: string
+        }
+        Returns: string
       }
       tenant_key_id: { Args: never; Returns: string }
       wrap_data_key: {

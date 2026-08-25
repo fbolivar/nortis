@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   Lock,
+  RefreshCw,
   Settings,
   LogOut,
   X,
@@ -36,6 +37,7 @@ const NAV = [
   { href: '/incidents', label: 'Incidentes', short: 'Incidentes', icon: ShieldAlert },
   { href: '/policies', label: 'Politicas', short: 'Politicas', icon: SlidersHorizontal },
   { href: '/vault', label: 'Cifrado', short: 'Cifrado', icon: Lock },
+  { href: '/updates', label: 'Actualizaciones', short: 'Updates', icon: RefreshCw },
   { href: '/settings', label: 'Administracion', short: 'Admin', icon: Settings },
 ] as const
 
