@@ -1,170 +1,160 @@
-# SaaS Factory V4
+# Nortis
 
-Template production-ready para crear aplicaciones SaaS con desarrollo asistido por IA. Filosofia Agent-First: el usuario dice que quiere, el agente construye todo.
+Consola de seguridad de la información para pymes. Un agente instalado en cada
+equipo Windows reporta qué se hace con los archivos de la empresa; la consola
+convierte esa actividad en inventario, incidentes de fuga de datos y evidencia
+auditable, y devuelve a cada equipo la política que debe aplicar.
 
-## Que incluye
+Multi-tenant desde el primer commit: cada organización ve exclusivamente sus
+datos, y esa frontera la impone PostgreSQL con RLS, no el código de la
+aplicación.
 
-- Next.js 16 (App Router) + TypeScript
-- Supabase (Database + Auth + RLS)
-- Tailwind CSS + shadcn/ui
-- 19 Skills de Claude Code (V4 Skills 2.0)
-- Playwright CLI para QA automatizado
-- AI Templates (Vercel AI SDK v5 + OpenRouter)
-- 5 Design Systems listos para usar
-- Arquitectura Feature-First optimizada para IA
-- Auto-Blindaje: el sistema aprende de cada error
-
-## Quick Start
-
-### 1. Instalar
-
-```bash
-npm install
-```
-
-### 2. Variables de Entorno
-
-```bash
-cp .env.example .env.local
-# Editar con credenciales de Supabase
-```
-
-### 3. MCPs (Opcional)
-
-```bash
-cp .claude/example.mcp.json .mcp.json
-# Editar con project ref de Supabase
-```
-
-### 4. Desarrollar
-
-```bash
-npm run dev
-# Auto-detecta puerto disponible (3000-3006)
-```
-
-## Tech Stack
-
-```yaml
-Runtime: Node.js + TypeScript
-Framework: Next.js 16 (App Router)
-Database: PostgreSQL/Supabase
-Styling: Tailwind CSS 3.4
-Components: shadcn/ui
-State: Zustand
-Validation: Zod
-AI Engine: Vercel AI SDK v5 + OpenRouter
-Testing: Playwright CLI + MCP
-Deploy: Vercel
-```
-
-## Arquitectura Feature-First
-
-```
-src/
-├── app/                      # Next.js App Router
-│   ├── (auth)/              # Rutas auth
-│   ├── (main)/              # Rutas principales
-│   └── layout.tsx
-│
-├── features/                 # Organizadas por funcionalidad
-│   └── [feature]/
-│       ├── components/
-│       ├── hooks/
-│       ├── services/
-│       ├── types/
-│       └── store/
-│
-└── shared/                   # Codigo reutilizable
-    ├── components/
-    ├── hooks/
-    ├── lib/
-    └── types/
-```
-
-## Skills (19 total)
-
-### Para el usuario
-
-| Skill | Que hace |
-|-------|----------|
-| `/new-app` | Entrevista de negocio → BUSINESS_LOGIC.md |
-| `/landing` | Landing page de alta conversion |
-| `/add-login` | Auth completo (Email + Google OAuth + profiles + RLS) |
-| `/bucle-agentico` | Implementar features complejas por fases |
-| `/sprint` | Tareas rapidas sin planificacion |
-| `/prp` | Planificar features complejas antes de implementar |
-| `/ai [template]` | Agregar IA: chat, RAG, vision, tools |
-| `/qa` | QA automatizado con Playwright CLI |
-| `/primer` | Inicializar contexto del proyecto |
-| `/update-sf` | Actualizar a ultima version |
-| `/eject-sf` | Remover SaaS Factory (destructivo) |
-| `/skill-creator` | Crear nuevos skills |
-
-### Automaticos (Claude los activa segun la tarea)
-
-backend, frontend, supabase-admin, codebase-analyst, vercel-deployer, documentacion, calidad
-
-## AI Templates
-
-Bloques LEGO para construir features de IA con Vercel AI SDK v5 + OpenRouter:
-
-| Template | Que hace |
-|----------|----------|
-| setup-base | Configuracion inicial |
-| chat | Chat streaming con useChat |
-| web-search | Busqueda con :online |
-| historial | Persistencia en Supabase |
-| vision | Analisis de imagenes |
-| tools | Funciones/herramientas |
-| rag | pgvector + embeddings |
-| single-call | generateText() puntual |
-| structured-outputs | generateObject() con Zod |
-| generative-ui | LLM decide que componente renderizar |
-
-## Design Systems
-
-5 sistemas visuales listos en `.claude/design-systems/`:
-
-- **Liquid Glass** - iOS-like, transparencias
-- **Gradient Mesh** - Degradados fluidos
-- **Neumorphism** - Soft UI, sombras suaves
-- **Bento Grid** - Grids asimetricos
-- **Neobrutalism** - Bold, bordes duros
-
-## Comandos
-
-```bash
-npm run dev          # Desarrollo (auto-port 3000-3006)
-npm run build        # Build produccion
-npm run typecheck    # TypeScript check
-npm run lint         # ESLint
-```
-
-## Deploy
-
-```bash
-# Vercel (recomendado)
-npm install -g vercel
-vercel
-```
-
-Variables en Vercel Dashboard:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-## Estructura .claude/
-
-```
-.claude/
-├── skills/              # 19 Skills (V4 Skills 2.0)
-├── PRPs/                # Product Requirements Proposals
-│   │   └── references/  # AI Templates (11 bloques)
-├── design-systems/      # 5 sistemas de diseno
-├── hooks/               # Scripts en eventos
-└── example.mcp.json     # Config de MCPs
-```
+> **Estado.** La consola está construida y operativa. El agente de endpoint
+> todavía no existe (ver [Qué falta](#qué-falta)), así que hoy el panel se
+> alimenta del juego de datos de demostración `supabase/seed/demo_telemetry.sql`.
 
 ---
 
-**SaaS Factory V4** | Agent-First. Todo es un Skill.
+## Qué hace la consola
+
+| Módulo | Para qué sirve |
+|---|---|
+| **Panel** | Estado de la flota, actividad por día y hora, aplicaciones y dominios más usados |
+| **Actividad** | Búsqueda sobre la telemetría cruda y trazabilidad de un archivo concreto |
+| **Equipos** | Inventario, últimos latidos, cuarentena y perfil de seguridad asignado |
+| **Incidentes** | Cola de posibles fugas con severidad, revisión y cierre justificado |
+| **Políticas** | Editor de perfiles, simulador de impacto previo al despliegue y asignación a equipos |
+| **Bóveda** | Documentos cifrados **en el navegador** y envío a terceros con enlace de un solo uso |
+| **Ajustes** | Usuarios de consola, credenciales de agente, consentimiento de monitoreo y registro de auditoría |
+
+Tres roles: `owner`, `admin` y `viewer`. Los dos primeros están obligados a
+segundo factor — y no como cortesía de la interfaz: sin `aal2`, la base les niega
+todo dato del tenant.
+
+## Cómo está construido
+
+| Capa | Elección |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) + React 19 + TypeScript |
+| Datos y auth | Supabase (PostgreSQL + Auth + RLS + Storage + pg_cron) |
+| Estilos | Tailwind CSS 3.4 |
+| Validación | Zod, en el borde de cada entrada |
+| Gráficas | Recharts |
+| Móvil | PWA instalable con service worker |
+
+### Tres decisiones que sostienen el producto
+
+**La autorización vive en la base.** Las 12 tablas con datos de cliente tienen
+RLS activo, declarado en el mismo archivo que crea la tabla. El layout de la
+consola comprueba sesión, perfil y nivel de MFA, pero eso es defensa en
+profundidad: aunque alguien se saltara ese layout, no obtendría una sola fila.
+
+**No existe la clave `service_role`.** La superficie `/api/agent` se autentica
+con la clave anónima y delega toda operación privilegiada en funciones
+`SECURITY DEFINER` que validan la credencial del agente dentro de Postgres, de
+modo que su autoridad queda acotada al tenant dueño de esa clave. En este
+despliegue no hay ninguna credencial global que robar: un error de lógica en un
+handler no puede exponer a otros clientes.
+
+**La bóveda cifra en el cliente.** AES-256-GCM con cifrado por sobre en el
+navegador ([crypto.ts](src/features/vault/services/crypto.ts)): el texto plano
+nunca viaja por la red ni pasa por la memoria del servidor. Nortis custodia
+documentos sin poder leerlos.
+
+## Puesta en marcha
+
+```bash
+npm install
+cp .env.local.example .env.local   # dos variables, ambas del panel de Supabase
+npm run dev
+```
+
+Con un Supabase local (requiere Docker y la CLI de Supabase):
+
+```bash
+supabase start                                  # aplica supabase/migrations en orden
+psql "$DB_URL" -f supabase/seed/demo_telemetry.sql   # datos de demostración
+```
+
+El esquema, el orden de las migraciones y las decisiones de diseño de la base
+están documentados en [supabase/README.md](supabase/README.md).
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
+
+## API del agente
+
+Contrato HTTP que consumirá el agente de endpoint. Vive bajo `/api/agent` y está
+excluido de la sesión de usuario a propósito: el agente no inicia sesión, se
+autentica con su credencial en cada petición.
+
+| Ruta | Credencial | Para qué |
+|---|---|---|
+| `POST /api/agent/enroll` | Organización (`nrt_live_…`) | Alta del equipo; devuelve la credencial propia del endpoint |
+| `POST /api/agent/events` | Equipo (`nrt_ep_…`) | Ingesta de telemetría por lotes, idempotente |
+| `POST /api/agent/heartbeat` | Equipo | Presencia y detección de política obsoleta |
+| `POST /api/agent/policy` | Equipo | Descarga del perfil vigente |
+| `GET /api/agent/version` | Ninguna | Consulta de versión para la auto-actualización |
+
+La credencial va **solo** por `Authorization: Bearer`, nunca por query string:
+las query strings acaban en los logs de acceso de cualquier proxy.
+
+El contrato está tipado en [`src/shared/schemas/`](src/shared/schemas/):
+`agent-api.ts` (peticiones y respuestas), `telemetry.ts` (los 13 tipos de evento)
+y `policy.ts` (el perfil de seguridad: almacenamiento, USB, web, portapapeles,
+impresión, cifrado y monitoreo).
+
+## Verificación
+
+CI se ejecuta en cada PR hacia `main` y en cada push a `main`, en tres trabajos
+independientes y **sin un solo secreto**:
+
+1. **Lint, tipos y build.** El build compila sin variables de entorno: las claves
+   se leen en tiempo de ejecución, así que CI no maneja credenciales — y lo que
+   no existe no se puede filtrar en un log.
+2. **Auditoría de dependencias.** `npm audit --audit-level=high`.
+3. **Contrato del agente y aislamiento entre tenants.** Levanta un Supabase local
+   y efímero dentro del runner, corre la suite pgTAP de aislamiento multi-tenant
+   ([supabase/tests/](supabase/tests/)) y después el contrato HTTP completo
+   contra la aplicación real ([tests/agent-api.test.mjs](tests/agent-api.test.mjs)).
+
+El tercer trabajo existe porque un lint y un build compilan perfectamente una API
+que ya no respeta sus propias invariantes. Si el contrato se rompe en un
+refactor, hay que enterarse en el PR y no cuando doscientos equipos dejen de
+reportar.
+
+## Estructura
+
+```
+src/
+├── app/
+│   ├── (auth)/          # login, registro, onboarding, MFA, contraseñas
+│   ├── (console)/       # la consola — un único punto de autorización en su layout
+│   ├── api/agent/       # superficie del agente (sin sesión, con API key)
+│   └── share/[token]/   # recepción pública de un documento compartido
+│
+├── features/            # una carpeta por dominio: auth, telemetry, incidents,
+│                        # policies, vault, tenant
+├── shared/              # componentes, esquemas Zod y tipos comunes
+└── lib/supabase/        # clientes de navegador, servidor y proxy
+```
+
+`src/proxy.ts` protege por **exclusión**, no por inclusión: cualquier ruta nueva
+nace protegida en lugar de esperar a que alguien se acuerde de añadirla a una
+lista.
+
+## Qué falta
+
+**El agente de endpoint** ([PRP-001](.claude/PRPs/prp-agente-endpoint-windows.md),
+Windows, Go). Es la pieza que cierra el circuito: sin él las políticas se editan
+pero nadie las aplica, y el inventario no tiene fuente real.
+
+Encadenado a eso, `/api/agent/version` devuelve `download_url` y `sha256` en nulo
+**deliberadamente**: el agente corre con privilegios de sistema y reemplazaría su
+propio binario por lo que hubiera al otro lado de esa URL. Publicar una descarga
+sin firma ni hash sería peor que no publicar ninguna. Los campos ya están en el
+contrato para que el agente los consuma desde el primer día.
