@@ -59,11 +59,11 @@ function DetailCell({
   wide?: boolean
 }) {
   return (
-    <div className={cn('rounded-xl bg-white/10 px-3 py-2', wide && 'col-span-2')}>
-      <p className="text-[0.625rem] uppercase tracking-[0.08em] text-primary-bright-foreground">
+    <div className={cn('rounded-xl bg-white/15 px-3 py-2', wide && 'col-span-2')}>
+      <p className="text-[0.625rem] uppercase tracking-[0.08em] text-primary-foreground/80">
         {label}
       </p>
-      <p className="mt-0.5 truncate text-xs font-semibold text-primary-bright-foreground">{value}</p>
+      <p className="mt-0.5 truncate text-xs font-semibold text-primary-foreground">{value}</p>
     </div>
   )
 }
@@ -71,19 +71,14 @@ function DetailCell({
 /**
  * Panel maestro-detalle de incidentes.
  *
- * Bloque oscuro a proposito: es el unico elemento de la consola que invierte la
- * superficie, y esa inversion es lo que lo separa del resto del panel sin
- * necesidad de un titulo enorme. A la izquierda la cola, a la derecha el
- * incidente seleccionado.
+ * Tarjeta blanca como el resto del panel: a la izquierda la cola, a la derecha el
+ * incidente seleccionado. La fila activa y la tarjeta de detalle se pintan con el
+ * azul de marca (`primary`) sobre blanco —donde tiene contraste de sobra— y el
+ * texto encima va en blanco (`primary-foreground`).
  *
- * Los colores de severidad siguen siendo pastillas claras —las mismas que en las
- * tablas— y no tonos adaptados al fondo oscuro: la severidad tiene que verse
- * exactamente igual aqui que en la cola, o deja de ser comparable.
- *
- * La fila seleccionada y la tarjeta de detalle usan `primary-bright` y no
- * `primary`: el azul marino de marca sobre el bloque `ink` da 1.5:1 y las dos
- * superficies se funden en una sola mancha oscura. El azul intermedio mantiene
- * 3:1 contra la tinta y 5.8:1 con el texto blanco encima.
+ * Los colores de severidad son las mismas pastillas claras que en las tablas: la
+ * severidad tiene que verse exactamente igual aqui que en la cola, o deja de ser
+ * comparable.
  */
 export function IncidentSpotlight({
   incidents,
@@ -123,25 +118,22 @@ export function IncidentSpotlight({
   return (
     <section
       className={cn(
-        // `relative` + `overflow-hidden`: los exige el halo cian de `ink-glow`,
-        // que es un pseudo-elemento absoluto y sin recorte se derramaria por
-        // fuera de las esquinas redondeadas.
-        'relative overflow-hidden rounded-2xl bg-ink p-4 sm:p-5',
-        'mesh-grid ink-glow motion-safe:animate-rise'
+        'relative overflow-hidden rounded-2xl border border-border/60 bg-surface p-4 shadow-card sm:p-5',
+        'motion-safe:animate-rise'
       )}
     >
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-ink-foreground">
+          <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
             {/* Punto latiente: la cola se alimenta de telemetria que entra sola,
                 y sin esta señal el bloque se lee como una captura estatica. Es
                 decorativo — el dato duro es la marca de tiempo de cada fila. */}
             <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
-              <span className="absolute inline-flex h-full w-full rounded-full bg-accent motion-safe:animate-pulse-dot" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-primary motion-safe:animate-pulse-dot" />
             </span>
             Incidentes recientes
           </h2>
-          <p className="mt-0.5 text-xs text-ink-muted">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Ultimas violaciones de politica detectadas en los equipos
           </p>
         </div>
@@ -149,7 +141,7 @@ export function IncidentSpotlight({
         <div
           role="tablist"
           aria-label="Filtrar incidentes"
-          className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/10 p-0.5"
+          className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted p-0.5"
         >
           {TABS.map(({ id, label }) => (
             <button
@@ -159,10 +151,10 @@ export function IncidentSpotlight({
               onClick={() => setTab(id)}
               className={cn(
                 'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
                 tab === id
                   ? 'bg-surface text-foreground shadow-sm'
-                  : 'text-ink-muted hover:text-ink-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {label}
@@ -175,11 +167,11 @@ export function IncidentSpotlight({
         // Estado vacio propio y no `EmptyState`: aquel esta calibrado para
         // superficie clara y aqui el texto quedaria por debajo del contraste
         // minimo sobre el bloque oscuro.
-        <div className="relative z-10 mt-3 flex flex-col items-center justify-center rounded-xl bg-white/5 px-6 py-10 text-center">
-          <p className="text-sm font-semibold text-ink-foreground">
+        <div className="relative z-10 mt-3 flex flex-col items-center justify-center rounded-xl bg-surface-muted px-6 py-10 text-center">
+          <p className="text-sm font-semibold text-foreground">
             {incidents.length === 0 ? emptyTitle : 'Nada coincide con esta pestaña'}
           </p>
-          <p className="mt-1.5 max-w-md text-xs text-ink-muted">
+          <p className="mt-1.5 max-w-md text-xs text-muted-foreground">
             {incidents.length === 0
               ? emptyDescription
               : 'Cambie a "Todos" para ver el resto de la cola.'}
@@ -215,17 +207,19 @@ export function IncidentSpotlight({
                     aria-current={active ? 'true' : undefined}
                     className={cn(
                       'relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl py-2 pl-3 pr-2.5 text-left transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
-                      active ? 'bg-primary-bright' : 'bg-white/5 hover:bg-white/10'
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                      active
+                        ? 'bg-primary'
+                        : 'border border-border/60 bg-surface-muted hover:bg-muted'
                     )}
                   >
-                    {/* Marca cian de seleccion. Al reducir el alto de fila, el
-                        solo cambio de fondo ya no bastaba para localizar la fila
-                        activa de un vistazo en una cola de doce. */}
+                    {/* Marca de seleccion. Al reducir el alto de fila, el solo
+                        cambio de fondo ya no bastaba para localizar la fila activa
+                        de un vistazo en una cola de doce. */}
                     {active ? (
                       <span
                         aria-hidden
-                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent"
+                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-white/70"
                       />
                     ) : null}
 
@@ -233,8 +227,8 @@ export function IncidentSpotlight({
                       className={cn(
                         'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
                         active
-                          ? 'bg-white/15 text-primary-bright-foreground'
-                          : 'bg-white/10 text-ink-foreground'
+                          ? 'bg-white/20 text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
                       )}
                       aria-hidden
                     >
@@ -245,7 +239,7 @@ export function IncidentSpotlight({
                       <span
                         className={cn(
                           'block truncate text-xs font-medium',
-                          active ? 'text-primary-bright-foreground' : 'text-ink-foreground'
+                          active ? 'text-primary-foreground' : 'text-foreground'
                         )}
                       >
                         {ruleLabel(incident.rule_triggered)}
@@ -253,7 +247,7 @@ export function IncidentSpotlight({
                       <span
                         className={cn(
                           'mt-0.5 flex items-center gap-1.5 text-[0.6875rem]',
-                          active ? 'text-primary-bright-foreground' : 'text-ink-muted'
+                          active ? 'text-primary-foreground/80' : 'text-muted-foreground'
                         )}
                       >
                         <span className="font-mono">{shortId(incident.id)}</span>
@@ -277,7 +271,7 @@ export function IncidentSpotlight({
           {selected ? (
             // `self-start`: sin el, la rejilla estira el detalle hasta el alto
             // de la cola y deja un bloque azul vacio bajo el boton.
-            <article className="relative flex min-w-0 flex-col self-start overflow-hidden rounded-xl bg-primary-bright p-4">
+            <article className="relative flex min-w-0 flex-col self-start overflow-hidden rounded-xl bg-primary p-4">
               {/* Barrido de luz al cambiar de incidente. `key` fuerza el remontaje
                   para que la animacion se dispare en cada seleccion y el panel
                   acuse el cambio: sin el, cambiar de fila solo permuta texto y
@@ -289,18 +283,15 @@ export function IncidentSpotlight({
                 style={{ animationIterationCount: 1 }}
               />
 
-              <p className="relative flex items-center gap-2 font-mono text-[0.6875rem] text-primary-bright-foreground">
-                {/* Marca cian: la aguja de la brujula reducida a un detalle
-                    grafico. Decorativa y aria-hidden — el cian sobre este azul
-                    da 3.8:1, suficiente para un elemento no textual pero no
-                    para texto pequeño, asi que nunca lleva contenido. */}
-                <span className="h-3 w-0.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <p className="relative flex items-center gap-2 font-mono text-[0.6875rem] text-primary-foreground/80">
+                {/* Marca clara: detalle grafico decorativo, aria-hidden. */}
+                <span className="h-3 w-0.5 shrink-0 rounded-full bg-white/70" aria-hidden />
                 {shortId(selected.id)}
               </p>
-              <h3 className="relative mt-1.5 text-base font-semibold leading-tight tracking-tight text-primary-bright-foreground">
+              <h3 className="relative mt-1.5 text-base font-semibold leading-tight tracking-tight text-primary-foreground">
                 {ruleLabel(selected.rule_triggered)}
               </h3>
-              <p className="relative mt-1 text-xs text-primary-bright-foreground">
+              <p className="relative mt-1 text-xs text-primary-foreground/85">
                 {CHANNEL_LABEL[selected.rule_channel ?? ''] ?? selected.rule_channel ?? 'Sin canal'}
                 {' · '}
                 {selected.endpoints?.hostname ?? 'Equipo desconocido'}
@@ -325,7 +316,7 @@ export function IncidentSpotlight({
 
               <Link
                 href={`/incidents/${selected.id}`}
-                className="relative mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface px-4 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary-bright"
+                className="relative mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface px-4 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
               >
                 Abrir incidente
                 <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
