@@ -16,6 +16,7 @@ import {
   IncidentSpotlight,
   type SpotlightIncident,
 } from '@/features/incidents/components/incident-spotlight'
+import { ConnectedDevices } from '@/features/telemetry/components/connected-devices'
 
 /** Un equipo sin señal en 15 minutos se considera fuera de linea. */
 const OFFLINE_THRESHOLD_MIN = 15
@@ -68,6 +69,7 @@ export default async function DashboardPage() {
     byCategory,
     topApps,
     topDomains,
+    connectedUsb,
   ] = await Promise.all([
     // `select('id')` y no `select('*')` en los conteos: `authenticated` no tiene
     // permiso sobre agent_credential_hash, y pedir la tabla entera —aunque sea
@@ -110,6 +112,8 @@ export default async function DashboardPage() {
     supabase.rpc('report_usage_by_category', { p_days: 7 }),
     supabase.rpc('report_top_apps', { p_days: 7, p_limit: 8 }),
     supabase.rpc('report_top_domains', { p_days: 7, p_limit: 8 }),
+    // Dispositivos externos conectados en los ultimos 30 dias (uno por serial).
+    supabase.rpc('report_connected_usb', { p_days: 30 }),
   ])
 
   const totalEndpoints = endpoints.count ?? 0
@@ -280,6 +284,10 @@ export default async function DashboardPage() {
             emptyDescription="Se registra el dominio, nunca la URL completa: la ruta y la query llevan identificadores y tokens."
             delay={240}
           />
+        </section>
+
+        <section>
+          <ConnectedDevices rows={connectedUsb.data ?? []} />
         </section>
 
       </div>
