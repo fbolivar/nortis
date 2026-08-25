@@ -3,85 +3,69 @@
 @tailwind utilities;
 
 /*
- * Nortis usa UN SOLO tema, claro. No hay conmutador claro/oscuro.
+ * Nortis usa UN SOLO tema, claro, con navegacion en una barra lateral oscura.
  *
- * El fondo es azul-gris y no blanco puro: las tarjetas de contenido SI son blancas,
- * y esa diferencia de un par de puntos de luminosidad es lo que hace que cada
- * tarjeta se lea como una unidad separada sin necesidad de dibujar un borde duro
- * alrededor. Con fondo blanco, las tarjetas blancas desaparecen y hay que
- * recuperar la separacion con bordes, que ensucian una pantalla densa.
+ * La paleta esta anclada a seis colores de marca:
+ *   #0284C7  primario (azul), accion y estado activo
+ *   #075985  primario oscuro, hover y acento fuerte
+ *   #F2F9FC  lienzo (fondo del area de contenido)
+ *   #E4E4E7  borde neutro
+ *   #191919  tinta (barra lateral y bloques invertidos)
+ *   #FFFFFF  superficie (tarjetas)
  *
- * Mantener un unico tema garantiza ademas que los colores de severidad conserven
- * exactamente el mismo contraste siempre — rojo critico sobre fondo claro y sobre
- * fondo oscuro no se perciben con la misma urgencia, y aqui esa percepcion es
- * funcional.
+ * El area de contenido es azul-blanco muy claro y las tarjetas son blancas: ese
+ * escalon de luminosidad separa cada tarjeta como unidad sin dibujar un borde
+ * duro. Un unico tema mantiene ademas el contraste de los colores de severidad
+ * constante, que aqui es funcional y no estetico.
  */
 @layer base {
   :root {
-    /*
-     * Lienzo azul-gris muy claro, derivado del azul marino del logo bajando la
-     * saturacion casi al limite. Nunca compite con el contenido.
-     */
-    --background: 218 32% 96%;
-    --foreground: 218 34% 13%;
+    /* Lienzo #F2F9FC: azul-blanco muy claro, nunca compite con el contenido. */
+    --background: 200 60% 97%;
+    --foreground: 215 28% 15%;
 
-    /* Superficie de tarjeta: blanco puro, el escalon por encima del lienzo. */
+    /* Superficie de tarjeta: blanco puro #FFFFFF, el escalon sobre el lienzo. */
     --surface: 0 0% 100%;
-    --surface-muted: 218 40% 98%;
+    --surface-muted: 200 55% 98%;
 
-    --muted: 218 28% 95%;
-    --muted-foreground: 218 12% 42%;
+    --muted: 205 24% 95%;
+    --muted-foreground: 215 14% 42%;
 
-    --border: 218 24% 90%;
+    /* Borde #E4E4E7, neutro. */
+    --border: 240 6% 90%;
     --input: 0 0% 100%;
-    /*
-     * Anillo de foco. Azul MAS LUMINOSO que el primario a proposito: el foco
-     * cae muchas veces sobre el propio boton primario (azul marino) y un
-     * anillo del mismo tono seria invisible. Este da 3.3:1 contra `--primary`
-     * y 3.5:1 contra blanco, asi que se ve en ambos fondos.
-     */
-    --ring: 211 92% 55%;
+    /* Anillo de foco: azul mas luminoso que el primario, visible sobre el propio
+       boton primario y sobre blanco. */
+    --ring: 200 98% 45%;
 
     /*
-     * Azul marino del logo (#1f3864). Es el acento de marca y esta reservado a
-     * la accion principal, al estado activo de navegacion y a la serie unica de
-     * las graficas. No se usa para comunicar severidad. Blanco encima da 11.6:1.
+     * Primario #0284C7. Acento de marca: accion principal, estado activo de
+     * navegacion y serie unica de graficas. Blanco encima da 4.8:1.
      */
-    --primary: 218 53% 26%;
+    --primary: 200 98% 39%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 218 60% 95%;
-    /*
-     * Azul intermedio de la misma familia. Existe para los bloques que van
-     * ENCIMA de `--ink`: el primario sobre tinta da 1.5:1 y las dos superficies
-     * se funden. Este da 3.0:1 contra `--ink` (separacion de superficies) y
-     * 5.8:1 con texto blanco encima.
-     */
-    --primary-bright: 218 56% 46%;
+    --primary-subtle: 200 88% 94%;
+    /* Azul de la misma familia para bloques SOBRE tinta, donde el primario se
+       fundiria con el fondo. Mantiene separacion y admite texto blanco. */
+    --primary-bright: 200 90% 48%;
     --primary-bright-foreground: 0 0% 100%;
 
     /*
-     * Cian de la aguja de la brujula (#00e5ff).
-     *
-     * REGLA DURA: sobre blanco da 1.5:1. NO puede llevar texto ni ser el relleno
-     * de nada informativo sobre fondo claro. Se usa solo sobre superficies
-     * oscuras (tinta o azul intermedio) y como detalle grafico.
-     *
-     * `--accent-strong` es la version oscurecida —misma familia, luminosidad
-     * bajada— para cuando hace falta cian en TEXTO o en una grafica sobre
-     * blanco: 5.2:1 contra blanco.
+     * Acento azul secundario, derivado de #075985. Se usa para detalle sobre
+     * superficie oscura y como refuerzo. `accent-strong` es la version para
+     * texto o grafica sobre blanco.
      */
-    --accent: 186 100% 50%;
-    --accent-foreground: 218 45% 11%;
-    --accent-strong: 190 100% 28%;
-    --accent-subtle: 186 78% 94%;
+    --accent: 199 88% 52%;
+    --accent-foreground: 0 0% 100%;
+    --accent-strong: 201 90% 28%;
+    --accent-subtle: 200 82% 94%;
 
     /*
-     * Tinta: el casi-negro azul marino de la pastilla de navegacion y de los
-     * bloques invertidos. No es #000 — un negro absoluto sobre el lienzo vibra.
+     * Tinta #191919: barra lateral y bloques invertidos. Casi-negro neutro.
      */
-    --ink: 218 45% 11%;
-    --ink-foreground: 218 25% 92%;
-    --ink-muted: 218 14% 64%;
+    --ink: 0 0% 10%;
+    --ink-foreground: 210 16% 90%;
+    --ink-muted: 210 8% 58%;
 
     /* --- Estados. Unico uso legitimo del color fuera del azul de marca. ---
        Todos los tonos solidos superan 4.5:1 sobre blanco; los `subtle` son el
@@ -98,76 +82,29 @@
     --success-foreground: 0 0% 100%;
     --success-subtle: 154 60% 93%;
 
-    --info: 222 76% 52%;
+    --info: 200 90% 42%;
     --info-foreground: 0 0% 100%;
-    --info-subtle: 220 92% 96%;
+    --info-subtle: 200 92% 95%;
 
     /*
-     * Paleta de graficas — pasos elegidos para superficie BLANCA.
-     *
-     * Cada tono supera 3:1 contra #ffffff (minimo para elementos graficos, WCAG
-     * 1.4.11) y el orden es el que maximiza la separacion entre pares
-     * ADYACENTES, que son los que se comparan de verdad en una leyenda o en un
-     * donut. No se reordenan ni se generan tonos nuevos: un septimo tono seria
-     * indistinguible de alguno existente para un lector con deficiencia de
-     * color.
-     *
-     * chart-1 es el azul marino de marca porque es el color de la serie unica,
-     * que es el caso mayoritario. Los cinco restantes solo aparecen cuando hay
-     * categorias que distinguir.
-     *
-     * chart-3 es el cian de la brujula OSCURECIDO (5.4:1 sobre blanco). El cian
-     * puro del logo se queda en 1.5:1 y desapareceria como linea o como sector.
-     *
-     * El orden evita poner los dos azules (marino y cian) en posiciones
-     * adyacentes: entre ellos va el naranja quemado, que es su complementario.
-     *
-     * Son independientes de los colores de estado (critical/warning/success):
-     * en esta consola el color de estado SIGNIFICA severidad, y reutilizarlo
-     * como "serie 4" destruiria ese significado.
+     * Paleta de graficas — pasos elegidos para superficie BLANCA. Cada tono
+     * supera 3:1 contra #ffffff. chart-1 es el azul de marca (#0284C7), color de
+     * la serie unica, que es el caso mayoritario. El orden maximiza la separacion
+     * entre pares adyacentes. Independientes de los colores de estado.
      */
-    --chart-1: #1f3864;
+    --chart-1: #0284c7;
     --chart-2: #c2410c;
-    --chart-3: #0e7490;
+    --chart-3: #075985;
     --chart-4: #be185d;
     --chart-5: #047857;
     --chart-6: #a16207;
 
-    /* Rejilla y ejes: una sola sombra por debajo de la superficie, solidos. */
-    --chart-grid: 218 26% 89%;
+    /* Rejilla y ejes: una sombra por debajo de la superficie, solida. */
+    --chart-grid: 210 22% 90%;
 
-    /*
-     * Marco de la aplicacion.
-     *
-     * La consola entera vive dentro de UNA tarjeta blanca que flota sobre el
-     * lienzo azul-gris. `--shell-gutter` es el aire que queda entre esa tarjeta y
-     * el borde de la ventana, y `--shell-radius` el redondeo de sus esquinas.
-     *
-     * Son variables y no clases de Tailwind porque el mismo valor tiene que
-     * usarse en tres sitios que deben coincidir al pixel: el padding del marco,
-     * el `top` del encabezado pegajoso (que se detiene justo en el borde de la
-     * tarjeta, no en el de la ventana) y el `top` del panel movil. Si divergen,
-     * el encabezado se despega de la tarjeta al hacer scroll y el efecto de
-     * "aplicacion dentro de una tarjeta" se rompe.
-     */
-    --shell-gutter: 0.75rem;
-    --shell-radius: 1.5rem;
-  }
-
-  /* En movil el margen y las esquinas se reducen: con 24px de aire por lado, un
-     telefono de 360px pierde un 13% del ancho util. */
-  @media (min-width: 640px) {
-    :root {
-      --shell-gutter: 1rem;
-      --shell-radius: 1.75rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    :root {
-      --shell-gutter: 1.5rem;
-      --shell-radius: 2rem;
-    }
+    /* Ancho de la barra lateral en pantallas grandes. Variable porque el panel
+       movil debe alinear su ancho con ella. */
+    --sidebar-width: 16rem;
   }
 
   * {
@@ -181,15 +118,12 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Cifras alineadas en columnas numericas: sin esto, una tabla de conteos o de
-     marcas de tiempo baila de fila en fila y deja de ser escaneable. */
+  /* Cifras alineadas en columnas numericas. */
   table,
   .tabular {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Areas seguras de iOS: en la PWA instalada la barra de estado y el indicador
-     de inicio se superponen al documento. */
   html {
     scroll-behavior: smooth;
   }
@@ -197,81 +131,61 @@
 
 @layer components {
   /*
-   * Lienzo. Centra el marco y le deja el aire azul-gris alrededor, respetando las
-   * areas seguras de iOS cuando la consola corre instalada como PWA.
-   */
-  .app-frame {
-    @apply mx-auto w-full max-w-[1440px];
-    padding: calc(env(safe-area-inset-top) + var(--shell-gutter)) var(--shell-gutter)
-      calc(env(safe-area-inset-bottom) + var(--shell-gutter));
-  }
-
-  /* La tarjeta unica que contiene toda la aplicacion. */
-  .app-card {
-    @apply relative bg-surface shadow-lifted;
-    border-radius: var(--shell-radius);
-    /* Llega siempre al borde inferior de la ventana. Sin esto, una pagina corta
-       deja la tarjeta flotando a media altura con un mar de lienzo debajo, que
-       se lee como contenido que no cargo. `svh` y no `vh`: en movil la barra de
-       direcciones retraible haria que la tarjeta sobresaliera. */
-    min-height: calc(
-      100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2 * var(--shell-gutter)
-    );
-  }
-
-  /*
-   * Encabezado pegajoso DENTRO de la tarjeta.
+   * Marco de la aplicacion: barra lateral oscura fija + area de contenido clara.
    *
-   * Se detiene en el borde superior de la tarjeta —no en el de la ventana— para
-   * que el aire azul-gris siga viendose por encima mientras se hace scroll. Repite
-   * el radio de la tarjeta en sus esquinas superiores: sin eso, al quedar fijo
-   * taparia el redondeo con un rectangulo blanco.
+   * La barra lateral es la unica navegacion en pantallas grandes; el contenido
+   * scrollea de forma independiente a su derecha.
    */
-  .app-header {
-    /* Por encima del velo del panel movil (z-40): el boton de cerrar vive en el
-       encabezado y quedaria atenuado y fuera de alcance por debajo. */
-    @apply sticky z-50 bg-surface/95 backdrop-blur-xl;
-    top: calc(env(safe-area-inset-top) + var(--shell-gutter));
-    border-top-left-radius: var(--shell-radius);
-    border-top-right-radius: var(--shell-radius);
+  .app-shell {
+    @apply flex min-h-[100svh] bg-background;
   }
 
   /*
-   * Panel de navegacion movil. Va `fixed` y no `absolute` dentro de la tarjeta
-   * porque debe aparecer bajo el encabezado sea cual sea el scroll actual.
+   * Barra lateral oscura. `sticky` + alto de viewport para que acompañe el
+   * scroll del contenido sin moverse. En movil se oculta y su lugar lo toma el
+   * panel deslizante (`.app-sheet`).
+   */
+  .app-sidebar {
+    @apply sticky top-0 hidden h-[100svh] shrink-0 flex-col bg-ink text-ink-foreground lg:flex;
+    width: var(--sidebar-width);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app-content {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  /*
+   * Barra superior del contenido: busqueda + acciones + cuenta. Pegajosa al
+   * borde superior de la ventana, con velo translucido para que el contenido
+   * que pasa por debajo no la ensucie.
+   */
+  .app-topbar {
+    @apply sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-surface/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /*
+   * Panel de navegacion movil: replica la barra lateral como hoja deslizante.
    */
   .app-sheet {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + var(--shell-gutter) + 5rem);
-    left: calc(var(--shell-gutter) + 0.5rem);
-    right: calc(var(--shell-gutter) + 0.5rem);
+    @apply fixed inset-y-0 left-0 z-[60] flex w-72 max-w-[85vw] flex-col bg-ink text-ink-foreground shadow-lifted;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /*
-   * Contenedor horizontal unico del contenido, ya dentro de la tarjeta.
-   *
-   * Vive aqui y no repetido en cada pagina porque los escalones de padding
-   * tienen que coincidir exactamente entre el encabezado y el cuerpo: si
-   * divergen, el titulo de la pagina deja de estar alineado con la primera
-   * tarjeta y se nota de inmediato.
-   */
   .shell-container {
-    @apply mx-auto w-full px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8;
   }
 
-  /* Cuerpo de pagina. Sustituye al antiguo `p-6` de cada ruta. */
+  /* Cuerpo de pagina. */
   .page-body {
-    @apply shell-container pb-12 pt-1;
+    @apply shell-container pb-12 pt-2;
   }
 
   /*
    * Rejilla tenue para los bloques de tinta.
-   *
-   * Da profundidad al unico bloque oscuro de la consola sin meter una imagen ni
-   * un degradado que compita con el contenido. El paso de 44px y la opacidad de
-   * 4% estan calibrados para que la trama se INTUYA y no se cuente: a partir de
-   * ~7% las lineas empiezan a leerse como separadores de una tabla que no
-   * existe, y el texto blanco encima pierde nitidez.
    */
   .mesh-grid {
     background-image:
@@ -281,45 +195,31 @@
   }
 
   /*
-   * Halo cian en la esquina superior del bloque de tinta.
-   *
-   * Es la unica licencia decorativa que se permite al cian de la aguja sobre
-   * superficie oscura, donde SI tiene contraste. Va en un pseudo-elemento con
-   * `pointer-events: none` para no interceptar los clics de la cola de
-   * incidentes que vive debajo. Exige `relative` y `overflow-hidden` en el
-   * contenedor.
+   * Halo azul en la esquina de un bloque de tinta. Decorativo, sobre superficie
+   * oscura donde el acento SI tiene contraste.
    */
   .ink-glow::after {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
-    /* Por debajo del contenido, que va en z-10. Sin esto el pseudo-elemento
-       —posicionado y ultimo en el arbol— pintaria ENCIMA del texto y le echaria
-       un velo cian que le quita contraste justo donde mas se lee. */
     z-index: 0;
     background: radial-gradient(
       120% 78% at 10% 0%,
-      hsl(var(--accent) / 0.12),
+      hsl(var(--accent) / 0.14),
       transparent 58%
     );
   }
 }
 
 @layer utilities {
-  /* Rutas de archivo, hashes y fingerprints. Truncado con el inicio visible. */
+  /* Rutas de archivo, hashes y fingerprints. */
   .forensic {
     @apply font-mono text-xs text-muted-foreground;
   }
 
   /*
    * Barra de scroll para listas dentro de los bloques de tinta.
-   *
-   * La nativa de Windows es una franja clara de 17px: sobre el bloque oscuro se
-   * lee como un elemento de interfaz ajeno pegado a la cola de incidentes. Se
-   * declaran las dos sintaxis porque ninguna cubre todos los navegadores:
-   * `scrollbar-*` es el estandar (Firefox y Chrome moderno) y `::-webkit-` cubre
-   * Safari, que aun no implementa el estandar.
    */
   .scroll-ink {
     scrollbar-width: thin;
