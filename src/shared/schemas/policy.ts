@@ -68,6 +68,17 @@ export const processName = z
 /** Serial de dispositivo USB, como lo reporta SetupAPI. */
 export const usbSerial = z.string().trim().min(1).max(255)
 
+/** Nombre de ejecutable para la lista de bloqueo de aplicaciones. Se compara con
+ *  el nombre que reporta el agente (p. ej. "anydesk.exe"), asi que debe llevar
+ *  la extension .exe. */
+export const processExe = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9 ._-]+\.exe$/, 'Nombre de ejecutable, ej: anydesk.exe')
+
+const appsMode = z.enum(['allow', 'alert', 'block'])
+
 export const policyConfigSchema = z.object({
   storage: z
     .object({
@@ -143,6 +154,18 @@ export const policyConfigSchema = z.object({
       block_bluetooth: z.boolean().default(false),
     })
     .default({ minimize_when_wired: false, block_non_domain: false, block_bluetooth: false }),
+
+  /**
+   * Control de aplicaciones por lista de bloqueo. Con modo distinto de 'allow',
+   * un proceso de `blocklist` abre un incidente ('alert') y, en 'block', el
+   * agente lo TERMINA. Es mitigacion: el proceso arranca y se cierra enseguida.
+   */
+  apps: z
+    .object({
+      mode: appsMode.default('allow'),
+      blocklist: z.array(processExe).default([]),
+    })
+    .default({ mode: 'allow', blocklist: [] }),
 
   /**
    * Clases de datos VIGILADAS. Cuando un archivo que el agente etiquete con una
@@ -225,10 +248,14 @@ export const USB_MODE_HELP: Record<z.infer<typeof enforcementMode>, string> = {
 export type NivelDeAplicacion = 'previene' | 'mitiga' | 'solo_registra'
 
 export const APLICACION_POR_CANAL: Record<
-  'usb' | 'web' | 'clipboard' | 'printing' | 'storage',
+  'usb' | 'web' | 'clipboard' | 'printing' | 'storage' | 'apps',
   { nivel: NivelDeAplicacion; nota?: string }
 > = {
   usb: { nivel: 'previene' },
+  apps: {
+    nivel: 'mitiga',
+    nota: 'El proceso alcanza a arrancar; en modo "bloquear" el agente lo termina en el siguiente sondeo (hasta ~1 min). No es prevencion: una accion muy rapida al abrir puede completarse antes del cierre.',
+  },
   web: {
     nivel: 'previene',
     nota: 'El agente desactiva DNS-over-HTTPS en Edge y Chrome; sin eso el navegador resolveria por su cuenta y saltaria el bloqueo. La lista blanca de dominios no se puede imponer y queda solo como alerta.',

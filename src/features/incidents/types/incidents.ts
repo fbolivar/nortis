@@ -56,12 +56,14 @@ export const CHANNEL_LABEL: Record<string, string> = {
   clipboard: 'Portapapeles',
   print: 'Impresion',
   email: 'Correo',
+  apps: 'Aplicaciones',
 }
 
 export const RULE_LABEL: Record<string, string> = {
   'storage.carpeta_no_autorizada': 'Guardado fuera de carpeta autorizada',
   'storage.extension_prohibida': 'Extension de archivo prohibida',
   'classification.dato_vigilado': 'Dato clasificado en movimiento',
+  'apps.proceso_no_autorizado': 'Aplicacion no autorizada',
   'usb.dispositivo_no_autorizado': 'Dispositivo USB no autorizado',
   'web.dominio_bloqueado': 'Dominio bloqueado',
   'web.fuera_de_lista_blanca': 'Sitio fuera de la lista blanca',
@@ -84,4 +86,6 @@ export const ENFORCEMENT_LABEL: Record<string, string> = {
   log: 'Solo registrado',
   quarantine: 'En cuarentena',
   quarantined: 'En cuarentena',
+  terminated: 'Proceso terminado',
+  terminate: 'Terminar proceso',
 }
