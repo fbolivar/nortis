@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Tag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Badge,
@@ -41,6 +42,7 @@ export interface QueueIncident {
   enforcement_action: string | null
   detected_at: string
   event_snapshot: Json
+  classification: string | null
   endpoints: { hostname: string } | null
 }
 
@@ -302,6 +304,12 @@ export function IncidentQueue({
                         </Link>
                         <span className="block text-xs text-muted-foreground">
                           {CHANNEL_LABEL[incident.rule_channel ?? ''] ?? incident.rule_channel}
+                          {incident.classification ? (
+                            <span className="ml-1.5 inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                              <Tag className="h-3 w-3" aria-hidden />
+                              {incident.classification}
+                            </span>
+                          ) : null}
                         </span>
                       </Td>
                       <Td className="text-muted-foreground">

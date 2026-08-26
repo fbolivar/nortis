@@ -15,6 +15,8 @@ export type Classification = {
   path_keywords: string[]
   /** Patrones de CONTENIDO (regex) que el agente evalua localmente (Fase B). */
   content_patterns: string[]
+  /** Si es sensible, un incidente sobre un dato de esta clase sube de severidad. */
+  sensitive: boolean
   sort_order: number
 }
 

@@ -161,6 +161,9 @@ export default async function IncidentDetailPage({
             <Badge tone={SEVERITY_TONE[incident.severity]}>
               {SEVERITY_LABEL[incident.severity]}
             </Badge>
+            {incident.classification ? (
+              <Badge tone="neutral">Dato: {incident.classification}</Badge>
+            ) : null}
             <Link
               href="/incidents"
               className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
@@ -214,6 +217,12 @@ export default async function IncidentDetailPage({
                   {formatDateTime(incident.event_occurred_at)}
                 </dd>
               </div>
+              {incident.classification ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">Clasificacion del dato</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{incident.classification}</dd>
+                </div>
+              ) : null}
             </dl>
 
             {/*

@@ -24,6 +24,7 @@ export interface SpotlightIncident {
   status: IncidentStatus
   detected_at: string
   enforcement_action: string | null
+  classification: string | null
   endpoints: { hostname: string } | null
 }
 
@@ -303,6 +304,9 @@ export function IncidentSpotlight({
                 {/* A ancho completo: la marca de tiempo forense lleva fecha, hora
                     y año, y en media columna se corta justo por el minuto. */}
                 <DetailCell wide label="Detectado" value={formatDateTime(selected.detected_at)} />
+                {selected.classification ? (
+                  <DetailCell wide label="Clasificacion del dato" value={selected.classification} />
+                ) : null}
                 <DetailCell
                   wide
                   label="Accion aplicada"
