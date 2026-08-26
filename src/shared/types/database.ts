@@ -882,6 +882,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_user_site: {
+        Args: { p_user_id: string; p_site_id: string | null }
+        Returns: undefined
+      }
       agent_poll_tasks: {
         Args: { p_credential: string; p_endpoint_id: string }
         Returns: {

@@ -86,12 +86,18 @@ export function UsersTable({
   currentUserId,
   isOwner,
   canManage,
+  sites,
+  canAssignSites,
 }: {
   users: ConsoleUser[]
   currentUserId: string
   isOwner: boolean
   /** owner o admin. Un viewer ve la tabla en solo lectura. */
   canManage: boolean
+  /** Sedes de la organizacion, para el selector de delegacion. */
+  sites: { id: string; name: string }[]
+  /** Solo la consola CENTRAL asigna usuarios a sedes (no un delegado). */
+  canAssignSites: boolean
 }) {
   const router = useRouter()
   const [dialog, setDialog] = useState<Dialog>(null)
@@ -235,6 +241,16 @@ export function UsersTable({
     if (ok) setDialog(null)
   }
 
+  async function assignSite(user: ConsoleUser, siteId: string) {
+    const supabase = createClient()
+    await run(() =>
+      supabase.rpc('set_user_site', { p_user_id: user.id, p_site_id: siteId || null }),
+    )
+  }
+
+  const siteName = (id: string | null) =>
+    id ? (sites.find((s) => s.id === id)?.name ?? 'Sede') : 'Central'
+
   const adminsWithoutMfa = users.filter(
     (u) => (u.role === 'owner' || u.role === 'admin') && !u.mfa_enabled
   ).length
@@ -282,6 +298,7 @@ export function UsersTable({
                 <Th>Usuario</Th>
                 <Th>Rol</Th>
                 <Th>Segundo factor</Th>
+                {sites.length > 0 ? <Th>Sede</Th> : null}
                 <Th>Alta</Th>
                 {canManage ? (
                   <Th>
@@ -325,6 +342,30 @@ export function UsersTable({
                         <Badge tone="warning">Pendiente</Badge>
                       )}
                     </Td>
+                    {sites.length > 0 ? (
+                      <Td>
+                        {canAssignSites && !isSelf ? (
+                          <Select
+                            aria-label={`Sede de ${user.email}`}
+                            value={user.site_id ?? ''}
+                            onChange={(e) => assignSite(user, e.target.value)}
+                            disabled={pending}
+                            className="h-9 max-w-[12rem] py-0 text-sm"
+                          >
+                            <option value="">Central (toda la organizacion)</option>
+                            {sites.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <Badge tone={user.site_id ? 'info' : 'neutral'}>
+                            {siteName(user.site_id)}
+                          </Badge>
+                        )}
+                      </Td>
+                    ) : null}
                     <Td className="tabular-nums text-muted-foreground">
                       {formatDateTime(user.created_at)}
                     </Td>
