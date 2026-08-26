@@ -22,6 +22,8 @@ import {
 } from '@/features/dashboard/components/insights-charts'
 import { UsersByIncidents } from '@/features/dashboard/components/users-by-incidents'
 import { ruleLabel } from '@/features/incidents/types/incidents'
+import { ClassificationBars } from '@/features/classification/components/classification-bars'
+import { classifyPath, type Classification } from '@/features/classification/lib/classify'
 
 /** Titulo de seccion del panel. */
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -91,6 +93,27 @@ function usersByIncidents(rows: IncidentRow[], limit = 6): { user: string; count
     .slice(0, limit)
 }
 
+/** Operaciones de archivo agrupadas por clasificacion de dato (por patron). */
+function fileOpsByClassification(
+  rows: { payload: unknown }[],
+  classifications: Classification[],
+): { name: string; color: string; count: number }[] {
+  const m = new Map<string, { color: string; count: number }>()
+  for (const r of rows) {
+    const p = r.payload
+    const path =
+      p && typeof p === 'object' && !Array.isArray(p)
+        ? (p as Record<string, unknown>).path
+        : null
+    if (typeof path !== 'string' || !path) continue
+    const c = classifyPath(path, classifications)
+    const cur = m.get(c.name)
+    if (cur) cur.count += 1
+    else m.set(c.name, { color: c.color, count: 1 })
+  }
+  return [...m.entries()].map(([name, v]) => ({ name, color: v.color, count: v.count }))
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const session = await getSessionContext()
@@ -111,6 +134,8 @@ export default async function DashboardPage() {
     topApps,
     topDomains,
     connectedUsb,
+    classifications,
+    fileEvents,
   ] = await Promise.all([
     // `select('id')` y no `select('*')` en los conteos: `authenticated` no tiene
     // permiso sobre agent_credential_hash, y pedir la tabla entera —aunque sea
@@ -159,6 +184,15 @@ export default async function DashboardPage() {
     supabase.rpc('report_top_domains', { p_days: 7, p_limit: 8 }),
     // Dispositivos externos conectados en los ultimos 30 dias (uno por serial).
     supabase.rpc('report_connected_usb', { p_days: 30 }),
+    // Reglas de clasificacion y operaciones de archivo del periodo, para agrupar
+    // los datos por clase. La clasificacion se computa en Node con las reglas.
+    supabase.from('data_classifications').select('*'),
+    supabase
+      .from('activity_events')
+      .select('payload')
+      .in('event_type', ['file_created', 'file_modified', 'file_deleted'])
+      .gte('occurred_at', offlineCutoffISO(INSIGHT_DAYS * 24 * 60))
+      .limit(5000),
   ])
 
   const totalEndpoints = endpoints.count ?? 0
@@ -173,6 +207,11 @@ export default async function DashboardPage() {
   const insightsByType = openByType(incidentRows)
   const insightsSeries = incidentsPerDay(incidentRows)
   const topUsersByIncidents = usersByIncidents(incidentRows)
+
+  const classificationBars = fileOpsByClassification(
+    fileEvents.data ?? [],
+    (classifications.data ?? []) as Classification[],
+  )
 
   const currentVersion = currentRelease.data?.[0]?.version ?? null
 
@@ -293,10 +332,13 @@ export default async function DashboardPage() {
         <section className="space-y-3">
           <SectionTitle>Datos</SectionTitle>
           <div className="grid items-start gap-3 lg:grid-cols-2">
+            <ClassificationBars data={classificationBars} />
             <CategoryDonutChart data={byCategory.data ?? []} delay={120} />
-            <ActivityByDayChart data={byDay.data ?? []} delay={180} />
           </div>
-          <ConnectedDevices rows={connectedUsb.data ?? []} />
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            <ActivityByDayChart data={byDay.data ?? []} delay={180} />
+            <ConnectedDevices rows={connectedUsb.data ?? []} />
+          </div>
         </section>
 
         {/* --------------------------------------------------- Comportamiento --- */}
