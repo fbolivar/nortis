@@ -181,6 +181,19 @@ export const policyConfigSchema = z.object({
     })
     .default({ watched: [], mode: 'alert' }),
 
+  /**
+   * Control por horario. Fuera de la franja laboral (dias marcados + hora), el
+   * agente bloquea la sesion cada minuto. days: 1=lunes..7=domingo.
+   */
+  work_hours: z
+    .object({
+      enabled: z.boolean().default(false),
+      days: z.array(z.number().int().min(1).max(7)).default([1, 2, 3, 4, 5]),
+      start: z.string().regex(/^\d{2}:\d{2}$/).default('08:00'),
+      end: z.string().regex(/^\d{2}:\d{2}$/).default('18:00'),
+    })
+    .default({ enabled: false, days: [1, 2, 3, 4, 5], start: '08:00', end: '18:00' }),
+
   monitoring: z
     .object({
       /**

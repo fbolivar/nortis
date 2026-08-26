@@ -102,7 +102,26 @@ export default async function EndpointDetailPage({
   const events = timeline ?? []
   const openIncidents = (incidents ?? []).filter((i) => i.status === 'open').length
   const profile = endpoint.security_profiles as { name: string } | null
-  const liveStatus = resolveLiveStatus(endpoint, nowMs())
+  const nowStamp = nowMs()
+  const liveStatus = resolveLiveStatus(endpoint, nowStamp)
+
+  // Wake-on-LAN: la MAC de ESTE equipo (para despertarlo) y los equipos EN LINEA
+  // que pueden actuar de emisor. Solo tiene sentido ofrecerlo si el equipo no
+  // esta en linea y conocemos su MAC.
+  const targetMac =
+    liveStatus !== 'online' ? extractMac(endpoint.hardware_info) : undefined
+
+  let relays: { id: string; hostname: string }[] = []
+  if (canManage && targetMac) {
+    const { data: peers } = await supabase
+      .from('endpoints')
+      .select('id, hostname, status, last_seen_at')
+      .neq('id', id)
+      .order('hostname')
+    relays = (peers ?? [])
+      .filter((p) => resolveLiveStatus(p, nowStamp) === 'online')
+      .map((p) => ({ id: p.id, hostname: p.hostname }))
+  }
 
   return (
     <>
@@ -212,6 +231,8 @@ export default async function EndpointDetailPage({
             endpointId={endpoint.id}
             hostname={endpoint.hostname}
             consentSigned={Boolean(session?.organization?.monitoring_consent_signed_at)}
+            targetMac={targetMac}
+            relays={relays}
           />
         ) : null}
 
@@ -295,4 +316,24 @@ export default async function EndpointDetailPage({
       </div>
     </>
   )
+}
+
+/**
+ * Saca la primera MAC valida del inventario de hardware. Ignora interfaces sin
+ * MAC o con la MAC nula (00:00:...). Devuelve undefined si no hay ninguna: sin
+ * MAC no se puede armar el paquete magico de Wake-on-LAN.
+ */
+function extractMac(hardwareInfo: unknown): string | undefined {
+  if (!hardwareInfo || typeof hardwareInfo !== 'object') return undefined
+  const net = (hardwareInfo as Record<string, unknown>)['network']
+  if (!net || typeof net !== 'object') return undefined
+  const ifaces = (net as Record<string, unknown>)['interfaces']
+  if (!Array.isArray(ifaces)) return undefined
+  for (const iface of ifaces) {
+    const mac = iface && typeof iface === 'object' ? (iface as Record<string, unknown>)['mac'] : null
+    if (typeof mac === 'string' && /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(mac) && !/^(00:){5}00$/i.test(mac)) {
+      return mac
+    }
+  }
+  return undefined
 }

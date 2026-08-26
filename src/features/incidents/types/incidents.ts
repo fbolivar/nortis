@@ -57,6 +57,7 @@ export const CHANNEL_LABEL: Record<string, string> = {
   print: 'Impresion',
   email: 'Correo',
   apps: 'Aplicaciones',
+  network: 'Red',
 }
 
 export const RULE_LABEL: Record<string, string> = {
@@ -64,6 +65,7 @@ export const RULE_LABEL: Record<string, string> = {
   'storage.extension_prohibida': 'Extension de archivo prohibida',
   'classification.dato_vigilado': 'Dato clasificado en movimiento',
   'apps.proceso_no_autorizado': 'Aplicacion no autorizada',
+  'network.cambio_de_red': 'Cambio de red (IP publica)',
   'usb.dispositivo_no_autorizado': 'Dispositivo USB no autorizado',
   'web.dominio_bloqueado': 'Dominio bloqueado',
   'web.fuera_de_lista_blanca': 'Sitio fuera de la lista blanca',

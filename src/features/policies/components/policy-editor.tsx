@@ -568,6 +568,93 @@ export function PolicyEditor({
         </CardContent>
       </Card>
 
+      {/* ------------------------------------------------- Control por horario */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Control por horario</CardTitle>
+          <CardDescription>
+            Fuera de la franja laboral, el agente bloquea la sesion. El usuario no puede usar el
+            equipo fuera de horario.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.work_hours.enabled}
+              onChange={(e) => patch('work_hours', { enabled: e.target.checked })}
+              disabled={!canEdit}
+              className="mt-1"
+            />
+            <span>Restringir el uso a la franja laboral</span>
+          </label>
+          {config.work_hours.enabled ? (
+            <div className="space-y-3">
+              <div>
+                <Label>Dias laborables</Label>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {[
+                    { d: 1, l: 'Lun' },
+                    { d: 2, l: 'Mar' },
+                    { d: 3, l: 'Mie' },
+                    { d: 4, l: 'Jue' },
+                    { d: 5, l: 'Vie' },
+                    { d: 6, l: 'Sab' },
+                    { d: 7, l: 'Dom' },
+                  ].map(({ d, l }) => {
+                    const on = config.work_hours.days.includes(d)
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        disabled={!canEdit}
+                        onClick={() =>
+                          patch('work_hours', {
+                            days: on
+                              ? config.work_hours.days.filter((x) => x !== d)
+                              : [...config.work_hours.days, d].sort((a, b) => a - b),
+                          })
+                        }
+                        className={
+                          'rounded-full border px-3 py-1.5 text-sm transition-colors ' +
+                          (on
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-surface-muted text-muted-foreground hover:border-primary/40')
+                        }
+                      >
+                        {l}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="wh-start">Desde</Label>
+                  <Input
+                    id="wh-start"
+                    type="time"
+                    value={config.work_hours.start}
+                    onChange={(e) => patch('work_hours', { start: e.target.value })}
+                    disabled={!canEdit}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="wh-end">Hasta</Label>
+                  <Input
+                    id="wh-end"
+                    type="time"
+                    value={config.work_hours.end}
+                    onChange={(e) => patch('work_hours', { end: e.target.value })}
+                    disabled={!canEdit}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
       {/* --------------------------------------------------------------- Redes */}
       <Card>
         <CardHeader>

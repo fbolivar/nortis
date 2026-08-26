@@ -262,6 +262,58 @@ export async function issueUninstall(input: IssueUninstallInput): Promise<IssueR
   return issue(parsed.data.endpointIds, 'uninstall', { name: parsed.data.name })
 }
 
+/* ----------------------------------------------------------------- wake ---- */
+
+const wakeSchema = z.object({
+  // El equipo que EJECUTA (relay, en linea) y la MAC del equipo a encender.
+  endpointIds: endpointsSchema,
+  mac: z
+    .string()
+    .trim()
+    .refine((m) => /^([0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i.test(m), 'MAC invalida (ej: 7c:57:58:16:e4:8c)'),
+})
+export type IssueWakeInput = z.input<typeof wakeSchema>
+
+export async function issueWake(input: IssueWakeInput): Promise<IssueResult> {
+  const parsed = wakeSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'wake', { mac: parsed.data.mac })
+}
+
+/* -------------------------------------------------------- schedule_script -- */
+
+const scheduleScriptSchema = z
+  .object({
+    endpointIds: endpointsSchema,
+    id: z.string().trim().min(1).max(80),
+    interpreter: z.enum(['powershell', 'cmd']),
+    script: z.string().max(100_000).default(''),
+    // 0 = eliminar la tarea programada con ese id. Cualquier otro valor debe ser
+    // >= 5 minutos para no saturar el equipo.
+    everyMinutes: z.coerce.number().int().min(0).max(43_200),
+  })
+  .refine((v) => v.everyMinutes === 0 || v.everyMinutes >= 5, {
+    message: 'Minimo cada 5 minutos',
+    path: ['everyMinutes'],
+  })
+  .refine((v) => v.everyMinutes === 0 || v.script.trim().length > 0, {
+    message: 'El script no puede estar vacio',
+    path: ['script'],
+  })
+export type IssueScheduleScriptInput = z.input<typeof scheduleScriptSchema>
+
+export async function issueScheduleScript(input: IssueScheduleScriptInput): Promise<IssueResult> {
+  const parsed = scheduleScriptSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  const { endpointIds, id, interpreter, script, everyMinutes } = parsed.data
+  return issue(endpointIds, 'schedule_script', {
+    id,
+    interpreter,
+    script,
+    every_minutes: everyMinutes,
+  })
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'

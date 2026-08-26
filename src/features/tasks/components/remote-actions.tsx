@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Ban, Camera, Lock, MessageSquare, Trash2 } from 'lucide-react'
+import { Ban, Camera, Clock, Lock, MessageSquare, Power, Trash2 } from 'lucide-react'
 import {
   Button,
   Callout,
@@ -18,7 +18,9 @@ import {
   issueKill,
   issueLock,
   issueMessage,
+  issueScheduleScript,
   issueScreenshot,
+  issueWake,
   issueWipe,
 } from '@/features/tasks/services/tasks'
 
@@ -32,10 +34,16 @@ export function RemoteActions({
   endpointId,
   hostname,
   consentSigned = false,
+  targetMac,
+  relays = [],
 }: {
   endpointId: string
   hostname: string
   consentSigned?: boolean
+  /** MAC de ESTE equipo, para Wake-on-LAN desde un relay. */
+  targetMac?: string
+  /** Otros equipos que pueden enviar el WOL (en linea, misma red). */
+  relays?: { id: string; hostname: string }[]
 }) {
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -45,6 +53,11 @@ export function RemoteActions({
   const [avisoTitulo, setAvisoTitulo] = useState('')
   const [avisoCuerpo, setAvisoCuerpo] = useState('')
   const [proceso, setProceso] = useState('')
+  const [relay, setRelay] = useState(relays[0]?.id ?? '')
+  const [schedId, setSchedId] = useState('')
+  const [schedScript, setSchedScript] = useState('')
+  const [schedEvery, setSchedEvery] = useState('60')
+  const [schedInterp, setSchedInterp] = useState<'powershell' | 'cmd'>('powershell')
 
   /** Envuelve una server action de una sola-tarea y refleja su resultado. */
   function run(fn: () => Promise<{ results: { error?: string }[] }>, okMsg: string) {
@@ -216,6 +229,128 @@ export function RemoteActions({
               Borrar datos de {hostname}
             </Button>
           </div>
+        </div>
+
+        {/* Wake-on-LAN: se envia a OTRO equipo de la misma red que despierta a este. */}
+        {targetMac ? (
+          <div className="space-y-2">
+            <Label>Encender por Wake-on-LAN</Label>
+            <p className="text-xs text-muted-foreground">
+              Este equipo esta apagado o suspendido. Otro equipo encendido de la misma red le
+              enviara la señal de arranque (MAC {targetMac}).
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={relay}
+                onChange={(e) => setRelay(e.target.value)}
+                className="rounded-xl border border-border bg-input px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-primary"
+              >
+                {relays.length === 0 ? (
+                  <option value="">Sin equipos disponibles para enviar</option>
+                ) : (
+                  relays.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.hostname}
+                    </option>
+                  ))
+                )}
+              </select>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  run(
+                    () => issueWake({ endpointIds: [relay], mac: targetMac }),
+                    'Señal de arranque enviada al equipo emisor.'
+                  )
+                }
+                disabled={pending || !relay}
+              >
+                <Power className="mr-1.5 h-4 w-4" aria-hidden />
+                Encender
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Script recurrente: se ejecuta cada N minutos en el equipo. */}
+        <div className="space-y-2 rounded-xl border border-border bg-surface-muted/40 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Clock className="h-4 w-4" aria-hidden />
+            Tarea programada (script recurrente)
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Se ejecuta cada N minutos hasta que la quites (intervalo 0 = eliminar). Util para
+            mantenimiento, sincronizaciones o limpiezas periodicas.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="sch-id">Identificador</Label>
+              <Input
+                id="sch-id"
+                value={schedId}
+                onChange={(e) => setSchedId(e.target.value)}
+                placeholder="limpieza-temp"
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <Label htmlFor="sch-every">Cada (minutos)</Label>
+              <Input
+                id="sch-every"
+                type="number"
+                min={0}
+                value={schedEvery}
+                onChange={(e) => setSchedEvery(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="sch-interp">Interprete</Label>
+            <select
+              id="sch-interp"
+              value={schedInterp}
+              onChange={(e) => setSchedInterp(e.target.value as 'powershell' | 'cmd')}
+              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-primary"
+            >
+              <option value="powershell">PowerShell</option>
+              <option value="cmd">CMD</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="sch-script">Script</Label>
+            <textarea
+              id="sch-script"
+              value={schedScript}
+              onChange={(e) => setSchedScript(e.target.value)}
+              rows={3}
+              placeholder="Remove-Item $env:TEMP\* -Recurse -Force -ErrorAction SilentlyContinue"
+              className="w-full rounded-xl border border-border bg-input px-4 py-3 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary"
+            />
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              run(
+                () =>
+                  issueScheduleScript({
+                    endpointIds: [endpointId],
+                    id: schedId.trim(),
+                    interpreter: schedInterp,
+                    script: schedScript,
+                    everyMinutes: Number(schedEvery) || 0,
+                  }),
+                Number(schedEvery) > 0 ? 'Tarea programada enviada.' : 'Tarea eliminada.'
+              )
+            }
+            disabled={
+              pending ||
+              schedId.trim() === '' ||
+              (Number(schedEvery) > 0 && schedScript.trim() === '')
+            }
+          >
+            <Clock className="mr-1.5 h-4 w-4" aria-hidden />
+            {Number(schedEvery) > 0 ? 'Programar' : 'Eliminar tarea'}
+          </Button>
         </div>
 
         {msg ? (
