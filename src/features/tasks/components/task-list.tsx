@@ -4,7 +4,7 @@ import { formatDateTime } from '@/lib/utils'
 export type TaskRow = {
   id: string
   endpoint_id: string
-  kind: 'install_msi' | 'push_file' | 'restart'
+  kind: 'install_msi' | 'push_file' | 'restart' | 'run_script'
   status: 'pending' | 'sent' | 'running' | 'done' | 'failed'
   exit_code: number | null
   output: string | null
@@ -19,6 +19,7 @@ const KIND_LABEL: Record<TaskRow['kind'], string> = {
   install_msi: 'Instalar MSI',
   push_file: 'Colocar archivo',
   restart: 'Reiniciar',
+  run_script: 'Ejecutar script',
 }
 
 const STATUS: Record<

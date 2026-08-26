@@ -153,6 +153,26 @@ export async function issueRestart(input: IssueRestartInput): Promise<IssueResul
   return issue(parsed.data.endpointIds, 'restart', {}, sched.at)
 }
 
+/* ------------------------------------------------------------ run_script --- */
+
+const runScriptSchema = z.object({
+  endpointIds: endpointsSchema,
+  interpreter: z.enum(['powershell', 'cmd']),
+  // El script va firmado; el limite es solo para no encargar algo desmesurado.
+  script: z.string().trim().min(1, 'El script no puede estar vacio').max(100_000),
+  scheduleAt: z.string().optional(),
+})
+export type IssueRunScriptInput = z.input<typeof runScriptSchema>
+
+export async function issueRunScript(input: IssueRunScriptInput): Promise<IssueResult> {
+  const parsed = runScriptSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  const { endpointIds, interpreter, script, scheduleAt } = parsed.data
+  const sched = parseSchedule(scheduleAt)
+  if (sched.error) return fail(endpointIds, sched.error)
+  return issue(endpointIds, 'run_script', { interpreter, script }, sched.at)
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'
