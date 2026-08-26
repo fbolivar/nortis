@@ -64,6 +64,51 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_tasks: {
+        Row: {
+          id: string
+          organization_id: string
+          endpoint_id: string
+          kind: 'install_msi' | 'push_file' | 'restart'
+          payload: string
+          expires_at: string
+          signature: string
+          status: 'pending' | 'sent' | 'running' | 'done' | 'failed'
+          exit_code: number | null
+          output: string | null
+          error: string | null
+          created_by: string | null
+          created_at: string
+          sent_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          endpoint_id: string
+          kind: 'install_msi' | 'push_file' | 'restart'
+          payload: string
+          expires_at: string
+          signature: string
+          status?: 'pending' | 'sent' | 'running' | 'done' | 'failed'
+          exit_code?: number | null
+          output?: string | null
+          error?: string | null
+          created_by?: string | null
+          created_at?: string
+          sent_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          status?: 'pending' | 'sent' | 'running' | 'done' | 'failed'
+          exit_code?: number | null
+          output?: string | null
+          error?: string | null
+          sent_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
       agent_releases: {
         Row: {
           id: string
@@ -796,6 +841,38 @@ export type Database = {
           p_original_path: string
         }
         Returns: string
+      }
+      issue_agent_task: {
+        Args: {
+          p_endpoint_id: string
+          p_kind: string
+          p_payload: string
+          p_expires_at: string
+          p_signature: string
+        }
+        Returns: string
+      }
+      agent_poll_tasks: {
+        Args: { p_credential: string; p_endpoint_id: string }
+        Returns: {
+          id: string
+          kind: string
+          payload: string
+          expires_at: string
+          signature: string
+        }[]
+      }
+      agent_report_task: {
+        Args: {
+          p_credential: string
+          p_endpoint_id: string
+          p_task_id: string
+          p_status: string
+          p_exit_code?: number
+          p_output?: string
+          p_error?: string
+        }
+        Returns: undefined
       }
       tenant_key_id: { Args: never; Returns: string }
       wrap_data_key: {
