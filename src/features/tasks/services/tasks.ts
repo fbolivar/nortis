@@ -173,6 +173,35 @@ export async function issueRunScript(input: IssueRunScriptInput): Promise<IssueR
   return issue(endpointIds, 'run_script', { interpreter, script }, sched.at)
 }
 
+/* --------------------------------------------------------------- lock ------ */
+
+const lockSchema = z.object({ endpointIds: endpointsSchema })
+export type IssueLockInput = z.input<typeof lockSchema>
+
+export async function issueLock(input: IssueLockInput): Promise<IssueResult> {
+  const parsed = lockSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  // Sin programacion: bloquear es una accion inmediata.
+  return issue(parsed.data.endpointIds, 'lock', {})
+}
+
+/* --------------------------------------------------------------- wipe ------ */
+
+const wipeSchema = z.object({
+  endpointIds: endpointsSchema,
+  // Confirmacion explicita: el cliente debe enviar exactamente "BORRAR". No es la
+  // autoridad (esa la da el RPC con admin+MFA), es una barrera contra el clic
+  // accidental sobre una accion irreversible.
+  confirm: z.string().refine((v) => v === 'BORRAR', 'Escriba BORRAR para confirmar'),
+})
+export type IssueWipeInput = z.input<typeof wipeSchema>
+
+export async function issueWipe(input: IssueWipeInput): Promise<IssueResult> {
+  const parsed = wipeSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'wipe', {})
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'
