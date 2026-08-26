@@ -243,6 +243,36 @@ export type Database = {
         }
         Relationships: []
       }
+      endpoint_software: {
+        Row: {
+          id: string
+          organization_id: string
+          endpoint_id: string
+          name: string
+          version: string | null
+          publisher: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          endpoint_id: string
+          name: string
+          version?: string | null
+          publisher?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          endpoint_id?: string
+          name?: string
+          version?: string | null
+          publisher?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       alert_settings: {
         Row: {
           organization_id: string
@@ -543,8 +573,10 @@ export type Database = {
           /** Con que API key se dio de alta. Trazabilidad si una clave se filtra. */
           enrolled_with_api_key_id: string | null
           enrolled_at: string
+          hardware_info: Json | null
           hostname: string
           id: string
+          inventory_at: string | null
           last_logged_user: string | null
           last_seen_at: string | null
           machine_fingerprint: string
@@ -957,6 +989,10 @@ export type Database = {
           p_recipients: string[]
           p_min_severity: Database['public']['Enums']['incident_severity']
         }
+        Returns: undefined
+      }
+      agent_report_inventory: {
+        Args: { p_credential: string; p_hardware: Json; p_software: Json }
         Returns: undefined
       }
       agent_classifications: {
