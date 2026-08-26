@@ -243,6 +243,30 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_settings: {
+        Row: {
+          organization_id: string
+          enabled: boolean
+          recipients: string[]
+          min_severity: Database['public']['Enums']['incident_severity']
+          updated_at: string
+        }
+        Insert: {
+          organization_id: string
+          enabled?: boolean
+          recipients?: string[]
+          min_severity?: Database['public']['Enums']['incident_severity']
+          updated_at?: string
+        }
+        Update: {
+          organization_id?: string
+          enabled?: boolean
+          recipients?: string[]
+          min_severity?: Database['public']['Enums']['incident_severity']
+          updated_at?: string
+        }
+        Relationships: []
+      }
       activity_events: {
         Row: {
           /** Nulo en los datos sembrados; obligatorio para todo lo que entra por la API. */
@@ -364,6 +388,7 @@ export type Database = {
       dlp_incidents: {
         Row: {
           classification: string | null
+          notified_at: string | null
           created_at: string
           detected_at: string
           endpoint_id: string
@@ -924,6 +949,14 @@ export type Database = {
       }
       set_user_site: {
         Args: { p_user_id: string; p_site_id: string | null }
+        Returns: undefined
+      }
+      set_alert_settings: {
+        Args: {
+          p_enabled: boolean
+          p_recipients: string[]
+          p_min_severity: Database['public']['Enums']['incident_severity']
+        }
         Returns: undefined
       }
       agent_classifications: {
