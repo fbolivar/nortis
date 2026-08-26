@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   Lock,
   RefreshCw,
+  FileBarChart,
   Rocket,
   Search,
   Tags,
@@ -56,6 +57,7 @@ const NAV_GROUPS = [
   {
     title: 'Gestionar',
     items: [
+      { href: '/reports', label: 'Reportes', icon: FileBarChart },
       { href: '/updates', label: 'Actualizaciones', icon: RefreshCw },
       { href: '/settings', label: 'Administracion', icon: Settings },
     ],
