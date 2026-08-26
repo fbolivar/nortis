@@ -67,8 +67,13 @@ export default async function EndpointDetailPage({
     timelineQuery = timelineQuery.eq('event_type', validType)
   }
 
-  const [{ data: timeline }, { count: totalEvents }, { data: incidents }, { data: software }] =
-    await Promise.all([
+  const [
+    { data: timeline },
+    { count: totalEvents },
+    { data: incidents },
+    { data: software },
+    { data: shots },
+  ] = await Promise.all([
       timelineQuery,
       supabase
         .from('activity_events')
@@ -85,6 +90,12 @@ export default async function EndpointDetailPage({
         .select('name, version, publisher')
         .eq('endpoint_id', id)
         .order('name'),
+      supabase
+        .from('screenshots')
+        .select('id, captured_at')
+        .eq('endpoint_id', id)
+        .order('captured_at', { ascending: false })
+        .limit(12),
     ])
 
   const events = timeline ?? []
@@ -154,6 +165,42 @@ export default async function EndpointDetailPage({
           software={software ?? []}
           publicIp={endpoint.public_ip}
         />
+
+        {(shots ?? []).length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Capturas de pantalla</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Monitoreo con consentimiento firmado. Se conservan las mas recientes. Haga clic para
+                ver en tamaño completo.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {(shots ?? []).map((s) => (
+                  <a
+                    key={s.id}
+                    href={`/api/screenshots/${s.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block overflow-hidden rounded-lg border border-border"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/screenshots/${s.id}`}
+                      alt={`Captura ${formatDateTime(s.captured_at)}`}
+                      className="aspect-video w-full bg-surface-muted object-cover transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <span className="block px-2 py-1 text-[0.65rem] tabular-nums text-muted-foreground">
+                      {formatDateTime(s.captured_at)}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {canManage ? <RemoteActions endpointId={endpoint.id} hostname={endpoint.hostname} /> : null}
 
