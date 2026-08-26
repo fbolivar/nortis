@@ -111,6 +111,27 @@ export type Database = {
         }
         Relationships: []
       }
+      sites: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       agent_releases: {
         Row: {
           id: string
@@ -465,6 +486,7 @@ export type Database = {
           organization_id: string
           os_version: string | null
           policy_applied_at: string | null
+          site_id: string | null
           status: Database['public']['Enums']['endpoint_status']
           updated_at: string
         }
@@ -481,6 +503,7 @@ export type Database = {
           organization_id: string
           os_version?: string | null
           policy_applied_at?: string | null
+          site_id?: string | null
           status?: Database['public']['Enums']['endpoint_status']
           updated_at?: string
         }
@@ -497,6 +520,7 @@ export type Database = {
           organization_id?: string
           os_version?: string | null
           policy_applied_at?: string | null
+          site_id?: string | null
           status?: Database['public']['Enums']['endpoint_status']
           updated_at?: string
         }
