@@ -52,6 +52,7 @@ export function TaskIssuer({
   const [sha256, setSha256] = useState('')
   const [args, setArgs] = useState('')
   const [destPath, setDestPath] = useState('')
+  const [scheduleAt, setScheduleAt] = useState('')
   const [result, setResult] = useState<IssueResult | null>(null)
 
   const allSelected = endpoints.length > 0 && selected.size === endpoints.length
@@ -77,11 +78,14 @@ export function TaskIssuer({
   function submit() {
     setResult(null)
     const endpointIds = [...selected]
+    const schedule = scheduleAt || undefined
     startTransition(async () => {
       let res: IssueResult
-      if (kind === 'install_msi') res = await issueInstallMsi({ endpointIds, url, sha256, args })
-      else if (kind === 'push_file') res = await issuePushFile({ endpointIds, url, sha256, destPath })
-      else res = await issueRestart({ endpointIds })
+      if (kind === 'install_msi')
+        res = await issueInstallMsi({ endpointIds, url, sha256, args, scheduleAt: schedule })
+      else if (kind === 'push_file')
+        res = await issuePushFile({ endpointIds, url, sha256, destPath, scheduleAt: schedule })
+      else res = await issueRestart({ endpointIds, scheduleAt: schedule })
       setResult(res)
       router.refresh()
     })
@@ -229,9 +233,29 @@ export function TaskIssuer({
           )}
         </div>
 
+        {/* Programacion opcional */}
+        <div className="max-w-xs">
+          <Label htmlFor="schedule">Programar para (opcional)</Label>
+          <Input
+            id="schedule"
+            type="datetime-local"
+            value={scheduleAt}
+            onChange={(e) => setScheduleAt(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {scheduleAt
+              ? 'La tarea se entregara al equipo a esa hora (su hora local de la consola).'
+              : 'Vacio = se aplica en el proximo minuto.'}
+          </p>
+        </div>
+
         <div className="flex items-center gap-3">
           <Button onClick={submit} disabled={disabled}>
-            {pending ? 'Encargando…' : `Encargar a ${selected.size} equipo(s)`}
+            {pending
+              ? 'Encargando…'
+              : scheduleAt
+                ? `Programar en ${selected.size} equipo(s)`
+                : `Encargar a ${selected.size} equipo(s)`}
           </Button>
           {!signingReady ? (
             <span className="text-xs text-muted-foreground">Configure AGENT_SIGNING_PRIVKEY para emitir.</span>

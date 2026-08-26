@@ -24,7 +24,7 @@ export default async function TasksPage() {
     supabase
       .from('agent_tasks')
       .select(
-        'id, endpoint_id, kind, status, exit_code, output, error, created_at, completed_at, endpoints(hostname)',
+        'id, endpoint_id, kind, status, exit_code, output, error, created_at, completed_at, not_before, endpoints(hostname)',
       )
       .order('created_at', { ascending: false })
       .limit(40),
