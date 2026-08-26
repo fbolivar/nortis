@@ -23,6 +23,8 @@ import {
 import { EventTypeBadge, describeEvent } from '@/features/telemetry/components/event-row'
 import { EventTypeFilter } from '@/features/telemetry/components/event-type-filter'
 import { EndpointInventory } from '@/features/inventory/components/endpoint-inventory'
+import { RemoteActions } from '@/features/tasks/components/remote-actions'
+import { getSessionContext } from '@/features/auth/services/session'
 import { EVENT_TYPE_LABEL, type TelemetryEventType } from '@/shared/schemas/telemetry'
 import { ENDPOINT_COLUMNS, type EventType } from '@/shared/types/database'
 
@@ -38,6 +40,8 @@ export default async function EndpointDetailPage({
   const { id } = await params
   const { tipo } = await searchParams
   const supabase = await createClient()
+  const session = await getSessionContext()
+  const canManage = session?.role === 'owner' || session?.role === 'admin'
 
   const { data: endpoint } = await supabase
     .from('endpoints')
@@ -150,6 +154,8 @@ export default async function EndpointDetailPage({
           software={software ?? []}
           publicIp={endpoint.public_ip}
         />
+
+        {canManage ? <RemoteActions endpointId={endpoint.id} hostname={endpoint.hostname} /> : null}
 
         {openIncidents > 0 ? (
           <Callout tone="critical" title="Este equipo tiene incidentes sin revisar">
