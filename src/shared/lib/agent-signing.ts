@@ -30,15 +30,44 @@ const SIGN_PREFIX = 'nortis-task-v1'
 
 export type TaskKind = 'install_msi' | 'push_file' | 'restart'
 
+// Prefijo DER de una clave privada Ed25519 en PKCS8, al que solo le falta el
+// seed de 32 bytes. Node no acepta la clave "cruda", pero si un PKCS8 armado.
+const ED25519_PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex')
+
+/** Cuerpo base64 de un PEM, sea cual sea su etiqueta. */
+function pemBody(pem: string): Buffer {
+  const b64 = pem
+    .replace(/-----BEGIN[^-]+-----/, '')
+    .replace(/-----END[^-]+-----/, '')
+    .replace(/\s+/g, '')
+  return Buffer.from(b64, 'base64')
+}
+
 function loadPrivateKey(): crypto.KeyObject {
-  const pem = process.env.AGENT_SIGNING_PRIVKEY
-  if (!pem) {
+  const raw = process.env.AGENT_SIGNING_PRIVKEY
+  if (!raw) {
     throw new Error(
       'AGENT_SIGNING_PRIVKEY no esta configurada: sin la clave privada la consola no puede firmar tareas del agente.',
     )
   }
   // En .env las claves multilinea suelen venir con \n escapados.
-  return crypto.createPrivateKey(pem.includes('\\n') ? pem.replace(/\\n/g, '\n') : pem)
+  const pem = raw.includes('\\n') ? raw.replace(/\\n/g, '\n') : raw
+
+  // La herramienta de la consola (tools/uninstall-token) emite un PEM propietario
+  // con la clave Ed25519 CRUDA (64 bytes: seed||pub), no PKCS8. Node no lo parsea
+  // directo, asi que se toma el seed (primeros 32 bytes) y se envuelve en PKCS8.
+  if (/NORTIS CONSOLE ED25519 PRIVATE KEY/.test(pem)) {
+    const body = pemBody(pem)
+    if (body.length !== 64 && body.length !== 32) {
+      throw new Error('AGENT_SIGNING_PRIVKEY: clave Ed25519 con tamano inesperado')
+    }
+    const seed = body.subarray(0, 32)
+    const pkcs8 = Buffer.concat([ED25519_PKCS8_PREFIX, seed])
+    return crypto.createPrivateKey({ key: pkcs8, format: 'der', type: 'pkcs8' })
+  }
+
+  // PEM estandar (PKCS8) por si en el futuro se rota a ese formato.
+  return crypto.createPrivateKey(pem)
 }
 
 /** Los bytes exactos sobre los que se calcula la firma. */
