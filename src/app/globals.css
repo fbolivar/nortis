@@ -251,3 +251,26 @@
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/*
+ * Impresion (Reportes -> PDF via navegador). Se retira todo el cromo de la
+ * consola —barra lateral, barra superior, fondos oscuros— para que el PDF sea
+ * solo el reporte, sobre blanco y sin desperdiciar tinta.
+ */
+@media print {
+  .app-sidebar,
+  .app-topbar,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .app-shell,
+  .app-content,
+  body {
+    background: #fff !important;
+  }
+
+  .page-body {
+    padding: 0 !important;
+  }
+}
