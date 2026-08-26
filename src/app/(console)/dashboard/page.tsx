@@ -170,7 +170,7 @@ export default async function DashboardPage() {
     supabase
       .from('dlp_incidents')
       .select(
-        'id, rule_triggered, rule_channel, severity, status, enforcement_action, detected_at, endpoints(hostname)'
+        'id, rule_triggered, rule_channel, severity, status, enforcement_action, detected_at, classification, endpoints(hostname)'
       )
       .order('detected_at', { ascending: false })
       .limit(12),

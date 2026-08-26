@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2 } from 'lucide-react'
+import { ShieldAlert, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Button,
@@ -54,6 +54,7 @@ export function ClassificationManager({
   const [extensions, setExtensions] = useState('')
   const [keywords, setKeywords] = useState('')
   const [patterns, setPatterns] = useState('')
+  const [sensitive, setSensitive] = useState(false)
 
   function create() {
     const nombre = name.trim()
@@ -72,6 +73,7 @@ export function ClassificationManager({
           .split('\n')
           .map((s) => s.trim())
           .filter(Boolean),
+        sensitive,
         sort_order: classifications.length + 1,
       })
       if (e) {
@@ -82,6 +84,7 @@ export function ClassificationManager({
       setExtensions('')
       setKeywords('')
       setPatterns('')
+      setSensitive(false)
       router.refresh()
     })
   }
@@ -101,12 +104,12 @@ export function ClassificationManager({
 
   return (
     <div className="max-w-4xl space-y-4">
-      <Callout tone="info" title="Clasificacion por patron">
-        Nortis etiqueta cada archivo por su <strong>extension</strong> y por{' '}
-        <strong>palabras clave en la ruta</strong>, sin abrir el contenido. Estas etiquetas
-        alimentan el bloque <strong>&quot;Datos por clasificacion&quot;</strong> del panel. La
-        clasificacion por <em>contenido</em> (regex de tarjetas, cedulas, etc.) llegara en una
-        fase posterior sobre estas mismas reglas.
+      <Callout tone="info" title="Clasificacion de datos">
+        Nortis etiqueta cada archivo por su <strong>extension</strong>, por{' '}
+        <strong>palabras clave en la ruta</strong> y por <strong>contenido</strong> (el agente evalua
+        los patrones regex localmente y reporta solo la etiqueta). Estas etiquetas alimentan el
+        bloque <strong>&quot;Datos por clasificacion&quot;</strong> del panel y, cuando una clase se
+        marca como <strong>sensible</strong>, elevan la severidad de los incidentes que la involucran.
       </Callout>
 
       {canEdit ? (
@@ -178,6 +181,29 @@ export function ClassificationManager({
                   etiqueta. Requiere autorizacion de tratamiento de datos firmada.
                 </p>
               </div>
+              <label
+                htmlFor="cl-sensitive"
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface-muted px-4 py-3 sm:col-span-2"
+              >
+                <input
+                  id="cl-sensitive"
+                  type="checkbox"
+                  checked={sensitive}
+                  onChange={(e) => setSensitive(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-critical"
+                />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-sm font-medium">
+                    <ShieldAlert className="h-4 w-4 text-critical" aria-hidden />
+                    Dato sensible
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Un incidente que involucre un archivo de esta clase{' '}
+                    <strong>sube de severidad</strong> (a &quot;Alta&quot; si estaba por debajo) y se
+                    prioriza en la cola.
+                  </span>
+                </span>
+              </label>
             </div>
             <FormError>{error}</FormError>
             <Button onClick={create} disabled={pending || !name.trim()}>
@@ -214,6 +240,15 @@ export function ClassificationManager({
                         aria-hidden
                       />
                       <span className="text-sm font-medium">{c.name}</span>
+                      {c.sensitive ? (
+                        <span
+                          title="Los incidentes sobre esta clase suben de severidad"
+                          className="inline-flex items-center gap-1 rounded-md bg-critical-subtle px-1.5 py-0.5 text-xs font-medium text-critical"
+                        >
+                          <ShieldAlert className="h-3 w-3" aria-hidden />
+                          Sensible
+                        </span>
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {c.extensions.map((e) => (

@@ -20,7 +20,7 @@ export default async function IncidentsPage() {
   const { data, error } = await supabase
     .from('dlp_incidents')
     .select(
-      'id, endpoint_id, rule_triggered, rule_channel, severity, status, enforcement_action, detected_at, event_snapshot, endpoints(hostname)'
+      'id, endpoint_id, rule_triggered, rule_channel, severity, status, enforcement_action, detected_at, event_snapshot, classification, endpoints(hostname)'
     )
     .order('detected_at', { ascending: false })
     .limit(QUEUE_LIMIT)

@@ -120,6 +120,7 @@ export type Database = {
           extensions: string[]
           path_keywords: string[]
           content_patterns: string[]
+          sensitive: boolean
           sort_order: number
           created_at: string
         }
@@ -131,6 +132,7 @@ export type Database = {
           extensions?: string[]
           path_keywords?: string[]
           content_patterns?: string[]
+          sensitive?: boolean
           sort_order?: number
           created_at?: string
         }
@@ -142,6 +144,7 @@ export type Database = {
           extensions?: string[]
           path_keywords?: string[]
           content_patterns?: string[]
+          sensitive?: boolean
           sort_order?: number
           created_at?: string
         }
@@ -360,6 +363,7 @@ export type Database = {
       }
       dlp_incidents: {
         Row: {
+          classification: string | null
           created_at: string
           detected_at: string
           endpoint_id: string
