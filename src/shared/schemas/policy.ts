@@ -116,6 +116,18 @@ export const policyConfigSchema = z.object({
     .object({ confidential_paths: z.array(folderPath).default([]) })
     .default({ confidential_paths: [] }),
 
+  session: z
+    .object({
+      /**
+       * Minutos de inactividad tras los que Windows bloquea la sesion. 0 = Nortis
+       * no gestiona el bloqueo (no toca la configuracion del equipo). Lo impone el
+       * propio SO via la directiva de inactividad, asi que funciona igual en
+       * consola y por RDP.
+       */
+      lock_after_minutes: z.number().int().min(0).max(9999).default(0),
+    })
+    .default({ lock_after_minutes: 0 }),
+
   monitoring: z
     .object({
       /**
