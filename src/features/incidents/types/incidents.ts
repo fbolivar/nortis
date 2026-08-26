@@ -82,4 +82,6 @@ export const ENFORCEMENT_LABEL: Record<string, string> = {
   alert: 'Alertado',
   allowed: 'Permitido',
   log: 'Solo registrado',
+  quarantine: 'En cuarentena',
+  quarantined: 'En cuarentena',
 }

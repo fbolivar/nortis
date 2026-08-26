@@ -364,13 +364,13 @@ export function PolicyEditor({
             <ModeSelector
               legend="Que hacer con las clases vigiladas"
               value={config.classification.mode}
-              options={['alert', 'block'] as const}
-              labels={{ alert: 'Alertar', block: 'Bloquear' }}
+              options={['alert', 'quarantine'] as const}
+              labels={{ alert: 'Alertar', quarantine: 'Retirar a cuarentena' }}
               help={{
                 alert:
-                  'Se abre un incidente por cada archivo de una clase vigilada. La escritura se completa.',
-                block:
-                  'Reservado para cuando exista prevencion real sobre archivos (modo kernel). Hoy, sobre guardado, se comporta como Alertar: registra pero no impide la escritura.',
+                  'Se abre un incidente por cada archivo de una clase vigilada. El archivo se queda donde esta.',
+                quarantine:
+                  'El agente RETIRA el archivo a una carpeta protegida en el equipo (recuperable desde el incidente) y abre el incidente. No evita la escritura inicial; la deshace enseguida. Aplica aunque el archivo este en carpeta permitida.',
               }}
               onChange={(mode) => patch('classification', { mode })}
             />

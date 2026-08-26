@@ -154,7 +154,7 @@ export const policyConfigSchema = z.object({
   classification: z
     .object({
       watched: z.array(z.string().trim().min(1).max(120)).default([]),
-      mode: z.enum(['alert', 'block']).default('alert'),
+      mode: z.enum(['alert', 'quarantine']).default('alert'),
     })
     .default({ watched: [], mode: 'alert' }),
 
