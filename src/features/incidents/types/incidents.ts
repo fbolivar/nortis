@@ -61,6 +61,7 @@ export const CHANNEL_LABEL: Record<string, string> = {
 export const RULE_LABEL: Record<string, string> = {
   'storage.carpeta_no_autorizada': 'Guardado fuera de carpeta autorizada',
   'storage.extension_prohibida': 'Extension de archivo prohibida',
+  'classification.dato_vigilado': 'Dato clasificado en movimiento',
   'usb.dispositivo_no_autorizado': 'Dispositivo USB no autorizado',
   'web.dominio_bloqueado': 'Dominio bloqueado',
   'web.fuera_de_lista_blanca': 'Sitio fuera de la lista blanca',

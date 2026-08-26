@@ -17,9 +17,13 @@ export default async function PolicyDetailPage({
   const supabase = await createClient()
   const session = await getSessionContext()
 
-  const [{ data: profile }, { data: endpoints }] = await Promise.all([
+  const [{ data: profile }, { data: endpoints }, { data: classes }] = await Promise.all([
     supabase.from('security_profiles').select('*').eq('id', id).maybeSingle(),
     supabase.from('endpoints').select('id, hostname, assigned_profile_id').order('hostname'),
+    supabase
+      .from('data_classifications')
+      .select('name, sensitive')
+      .order('sort_order', { ascending: true }),
   ])
 
   // RLS ya impide leer perfiles de otro tenant: sin fila, para este usuario el
@@ -61,6 +65,7 @@ export default async function PolicyDetailPage({
           endpoints={endpoints ?? []}
           consentSigned={consentSigned}
           canEdit={canEdit}
+          classes={classes ?? []}
         />
       </div>
     </>
