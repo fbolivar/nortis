@@ -22,6 +22,7 @@ import {
 } from '@/features/telemetry/components/endpoint-status'
 import { EventTypeBadge, describeEvent } from '@/features/telemetry/components/event-row'
 import { EventTypeFilter } from '@/features/telemetry/components/event-type-filter'
+import { EndpointInventory } from '@/features/inventory/components/endpoint-inventory'
 import { EVENT_TYPE_LABEL, type TelemetryEventType } from '@/shared/schemas/telemetry'
 import { ENDPOINT_COLUMNS, type EventType } from '@/shared/types/database'
 
@@ -40,7 +41,7 @@ export default async function EndpointDetailPage({
 
   const { data: endpoint } = await supabase
     .from('endpoints')
-    .select(`${ENDPOINT_COLUMNS}, security_profiles(id, name)`)
+    .select(`${ENDPOINT_COLUMNS}, hardware_info, inventory_at, security_profiles(id, name)`)
     .eq('id', id)
     .maybeSingle()
 
@@ -62,19 +63,25 @@ export default async function EndpointDetailPage({
     timelineQuery = timelineQuery.eq('event_type', validType)
   }
 
-  const [{ data: timeline }, { count: totalEvents }, { data: incidents }] = await Promise.all([
-    timelineQuery,
-    supabase
-      .from('activity_events')
-      .select('*', { count: 'exact', head: true })
-      .eq('endpoint_id', id),
-    supabase
-      .from('dlp_incidents')
-      .select('id, rule_triggered, severity, status, detected_at')
-      .eq('endpoint_id', id)
-      .order('detected_at', { ascending: false })
-      .limit(5),
-  ])
+  const [{ data: timeline }, { count: totalEvents }, { data: incidents }, { data: software }] =
+    await Promise.all([
+      timelineQuery,
+      supabase
+        .from('activity_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('endpoint_id', id),
+      supabase
+        .from('dlp_incidents')
+        .select('id, rule_triggered, severity, status, detected_at')
+        .eq('endpoint_id', id)
+        .order('detected_at', { ascending: false })
+        .limit(5),
+      supabase
+        .from('endpoint_software')
+        .select('name, version, publisher')
+        .eq('endpoint_id', id)
+        .order('name'),
+    ])
 
   const events = timeline ?? []
   const openIncidents = (incidents ?? []).filter((i) => i.status === 'open').length
@@ -136,6 +143,12 @@ export default async function EndpointDetailPage({
             </dl>
           </CardContent>
         </Card>
+
+        <EndpointInventory
+          hardware={endpoint.hardware_info}
+          inventoryAt={endpoint.inventory_at}
+          software={software ?? []}
+        />
 
         {openIncidents > 0 ? (
           <Callout tone="critical" title="Este equipo tiene incidentes sin revisar">

@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Menu,
   MonitorSmartphone,
+  Boxes,
   ShieldAlert,
   SlidersHorizontal,
   Lock,
@@ -43,6 +44,7 @@ const NAV_GROUPS = [
       { href: '/incidents', label: 'Incidentes', icon: ShieldAlert },
       { href: '/activity', label: 'Trazabilidad', icon: FileSearch },
       { href: '/endpoints', label: 'Equipos', icon: MonitorSmartphone },
+      { href: '/inventory', label: 'Inventario', icon: Boxes },
     ],
   },
   {
