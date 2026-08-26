@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Cpu, HardDrive, MemoryStick, Server } from 'lucide-react'
+import { Cpu, HardDrive, MemoryStick, Server, ShieldCheck, ShieldOff, ShieldQuestion } from 'lucide-react'
 import {
+  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -58,6 +59,9 @@ export function EndpointInventory({
     )
   }, [software, query])
 
+  const encrypted =
+    typeof hw['disk_encrypted'] === 'boolean' ? (hw['disk_encrypted'] as boolean) : undefined
+
   const diskTotal = hw['disk_total_bytes']
   const diskFree = hw['disk_free_bytes']
   const diskUsed =
@@ -84,8 +88,26 @@ export function EndpointInventory({
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Hardware</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CardTitle>Hardware</CardTitle>
+            {encrypted === true ? (
+              <Badge tone="success">
+                <ShieldCheck className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Disco cifrado
+              </Badge>
+            ) : encrypted === false ? (
+              <Badge tone="critical">
+                <ShieldOff className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Sin cifrar
+              </Badge>
+            ) : (
+              <Badge tone="neutral">
+                <ShieldQuestion className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Cifrado sin datos
+              </Badge>
+            )}
+          </div>
           {inventoryAt ? (
             <span className="text-xs text-muted-foreground">
               Actualizado {formatRelative(inventoryAt)}

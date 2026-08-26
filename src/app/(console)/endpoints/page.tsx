@@ -33,7 +33,7 @@ export default async function EndpointsPage() {
 
   const { data, error } = await supabase
     .from('endpoints')
-    .select(`${ENDPOINT_COLUMNS}, security_profiles(id, name)`)
+    .select(`${ENDPOINT_COLUMNS}, hardware_info, security_profiles(id, name)`)
     .order('hostname')
 
   if (error) {
@@ -60,6 +60,19 @@ export default async function EndpointsPage() {
   const outdated = endpoints.filter(
     (e) => e.agent_version && e.agent_version !== latestAgentVersion(endpoints)
   ).length
+
+  // Cumplimiento de cifrado: el agente reporta disk_encrypted en el hardware.
+  // Solo se cuentan como "sin cifrar" los que lo reportaron en false; los que aun
+  // no tienen dato no se penalizan (podrian no haber hecho el primer barrido).
+  const diskEncrypted = (e: (typeof endpoints)[number]): boolean | undefined => {
+    const hw = e.hardware_info
+    if (hw && typeof hw === 'object' && !Array.isArray(hw)) {
+      const v = (hw as Record<string, unknown>).disk_encrypted
+      if (typeof v === 'boolean') return v
+    }
+    return undefined
+  }
+  const unencrypted = endpoints.filter((e) => diskEncrypted(e) === false).length
 
   return (
     <>
@@ -101,6 +114,16 @@ export default async function EndpointsPage() {
             tone={count('quarantined') > 0 ? 'critical' : 'neutral'}
           />
         </section>
+
+        {unencrypted > 0 ? (
+          <Callout
+            tone="critical"
+            title={`${unencrypted} ${unencrypted === 1 ? 'equipo sin cifrar' : 'equipos sin cifrar'}`}
+          >
+            El disco del sistema no tiene BitLocker activo. Un equipo sin cifrar expone toda su
+            informacion si se pierde o lo roban — un riesgo directo de cumplimiento (Ley 1581).
+          </Callout>
+        ) : null}
 
         {unassigned > 0 || outdated > 0 ? (
           <Callout tone="warning" title="Brechas de cobertura">
