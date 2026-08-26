@@ -53,6 +53,7 @@ export function ClassificationManager({
   const [color, setColor] = useState(PALETTE[0])
   const [extensions, setExtensions] = useState('')
   const [keywords, setKeywords] = useState('')
+  const [patterns, setPatterns] = useState('')
 
   function create() {
     const nombre = name.trim()
@@ -66,6 +67,11 @@ export function ClassificationManager({
         color,
         extensions: parseList(extensions).map(normalizeExt).filter(Boolean),
         path_keywords: parseList(keywords).map((k) => k.toLowerCase()),
+        // Los patrones de contenido son regex (pueden llevar comas): uno por linea.
+        content_patterns: patterns
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean),
         sort_order: classifications.length + 1,
       })
       if (e) {
@@ -75,6 +81,7 @@ export function ClassificationManager({
       setName('')
       setExtensions('')
       setKeywords('')
+      setPatterns('')
       router.refresh()
     })
   }
@@ -155,6 +162,22 @@ export function ClassificationManager({
                   placeholder="contratos, legal"
                 />
               </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="cl-pat">Patrones de contenido (regex, uno por linea)</Label>
+                <textarea
+                  id="cl-pat"
+                  value={patterns}
+                  onChange={(e) => setPatterns(e.target.value)}
+                  rows={3}
+                  spellCheck={false}
+                  placeholder={'\\b(?:\\d[ -]?){13,16}\\b\n(?i)cedula[^0-9]{0,10}\\d{6,10}'}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  El agente los evalua sobre el contenido del archivo (Fase B) y reporta solo la
+                  etiqueta. Requiere autorizacion de tratamiento de datos firmada.
+                </p>
+              </div>
             </div>
             <FormError>{error}</FormError>
             <Button onClick={create} disabled={pending || !name.trim()}>
@@ -209,7 +232,18 @@ export function ClassificationManager({
                           {k}
                         </span>
                       ))}
-                      {c.extensions.length === 0 && c.path_keywords.length === 0 ? (
+                      {c.content_patterns.map((p) => (
+                        <span
+                          key={p}
+                          title="Patron de contenido (regex)"
+                          className="rounded-md bg-warning-subtle px-1.5 py-0.5 font-mono text-xs text-warning"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                      {c.extensions.length === 0 &&
+                      c.path_keywords.length === 0 &&
+                      c.content_patterns.length === 0 ? (
                         <span className="text-xs text-muted-foreground">Sin reglas</span>
                       ) : null}
                     </div>

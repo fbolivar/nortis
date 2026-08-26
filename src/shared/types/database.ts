@@ -119,6 +119,7 @@ export type Database = {
           color: string
           extensions: string[]
           path_keywords: string[]
+          content_patterns: string[]
           sort_order: number
           created_at: string
         }
@@ -129,6 +130,7 @@ export type Database = {
           color?: string
           extensions?: string[]
           path_keywords?: string[]
+          content_patterns?: string[]
           sort_order?: number
           created_at?: string
         }
@@ -139,6 +141,7 @@ export type Database = {
           color?: string
           extensions?: string[]
           path_keywords?: string[]
+          content_patterns?: string[]
           sort_order?: number
           created_at?: string
         }
@@ -918,6 +921,10 @@ export type Database = {
       set_user_site: {
         Args: { p_user_id: string; p_site_id: string | null }
         Returns: undefined
+      }
+      agent_classifications: {
+        Args: { p_credential: string }
+        Returns: { name: string; content_patterns: string[] }[]
       }
       agent_poll_tasks: {
         Args: { p_credential: string; p_endpoint_id: string }
