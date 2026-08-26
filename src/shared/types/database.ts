@@ -995,6 +995,10 @@ export type Database = {
         Args: { p_credential: string; p_hardware: Json; p_software: Json }
         Returns: undefined
       }
+      inventory_top_software: {
+        Args: { p_limit?: number }
+        Returns: { name: string; devices: number }[]
+      }
       agent_classifications: {
         Args: { p_credential: string }
         Returns: { name: string; content_patterns: string[] }[]

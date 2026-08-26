@@ -42,6 +42,14 @@ export default async function InventoryPage({
     endpoints: { hostname: string } | null
   }[]
 
+  // Sin busqueda, se muestran los programas mas comunes de la flota para que la
+  // pantalla no quede en blanco. El RPC respeta la RLS (org + sede).
+  const { data: top } =
+    query.length < 2
+      ? await supabase.rpc('inventory_top_software', { p_limit: 30 })
+      : { data: null }
+  const topSoftware = (top ?? []) as { name: string; devices: number }[]
+
   return (
     <>
       <PageHeader
@@ -71,11 +79,40 @@ export default async function InventoryPage({
 
         {query.length < 2 ? (
           <Card>
-            <CardContent className="py-2">
-              <EmptyState
-                title="Busca un programa"
-                description="Escribe al menos dos letras del nombre de un programa para ver en que equipos esta instalado. El inventario se refresca desde cada agente cada pocas horas."
-              />
+            <CardHeader>
+              <CardTitle>Programas mas comunes en la flota</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Busca arriba por nombre para ver en que equipos esta instalado cada programa.
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              {topSoftware.length === 0 ? (
+                <div className="p-2">
+                  <EmptyState
+                    title="Sin inventario todavia"
+                    description="Los agentes reportan su software cada pocas horas. En cuanto llegue el primer barrido, aqui apareceran los programas mas instalados."
+                  />
+                </div>
+              ) : (
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>Programa</Th>
+                      <Th>Equipos</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topSoftware.map((s) => (
+                      <tr key={s.name} className="hover:bg-surface-muted">
+                        <Td className="font-medium">{s.name}</Td>
+                        <Td className="tabular-nums text-muted-foreground">
+                          {Number(s.devices).toLocaleString('es-CO')}
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         ) : (
