@@ -144,6 +144,20 @@ export const policyConfigSchema = z.object({
     })
     .default({ minimize_when_wired: false, block_non_domain: false, block_bluetooth: false }),
 
+  /**
+   * Clases de datos VIGILADAS. Cuando un archivo que el agente etiquete con una
+   * de estas clases se crea o modifica, se abre un incidente aunque la carpeta y
+   * la extension estuvieran permitidas: se vigila el dato, no la carpeta. En modo
+   * usuario esto SOLO REGISTRA sobre archivos (no impide la escritura); 'block'
+   * existe por contrato y la UI lo dice.
+   */
+  classification: z
+    .object({
+      watched: z.array(z.string().trim().min(1).max(120)).default([]),
+      mode: z.enum(['alert', 'block']).default('alert'),
+    })
+    .default({ watched: [], mode: 'alert' }),
+
   monitoring: z
     .object({
       /**

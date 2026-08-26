@@ -115,12 +115,15 @@ export function PolicyEditor({
   endpoints,
   consentSigned,
   canEdit,
+  classes = [],
 }: {
   profile: SecurityProfile | null
   initialConfig: PolicyConfig
   endpoints: { id: string; hostname: string; assigned_profile_id: string | null }[]
   consentSigned: boolean
   canEdit: boolean
+  /** Clases definidas en Clasificacion; alimentan las casillas de "clase vigilada". */
+  classes?: { name: string; sensitive: boolean }[]
 }) {
   const router = useRouter()
   const isNew = profile === null
@@ -282,6 +285,96 @@ export function PolicyEditor({
             validate={validateExtension}
             disabled={!canEdit}
           />
+        </CardContent>
+      </Card>
+
+      {/* ----------------------------------------------- Clasificacion de datos */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <CardTitle>Clasificacion de datos</CardTitle>
+              <CardDescription>
+                Abre un incidente cuando un archivo de estas clases se crea o modifica, aunque la
+                carpeta y la extension estuvieran permitidas. Se vigila el dato, no la carpeta.
+              </CardDescription>
+            </div>
+            <Aplicacion canal="storage" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {classes.length === 0 ? (
+            <Callout tone="info" title="Aun no hay clases definidas">
+              Cree clases en <strong>Clasificacion</strong> (extension, palabras de ruta o patrones
+              de contenido) y apareceran aqui para vigilarlas.
+            </Callout>
+          ) : (
+            <fieldset>
+              <legend className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Clases vigiladas
+              </legend>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {classes.map((c) => {
+                  const checked = config.classification.watched.some(
+                    (w) => w.toLowerCase() === c.name.toLowerCase()
+                  )
+                  return (
+                    <label
+                      key={c.name}
+                      className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface-muted px-3.5 py-3 transition-colors hover:border-primary/40 hover:bg-primary-subtle"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={!canEdit}
+                        onChange={(e) =>
+                          patch('classification', {
+                            watched: e.target.checked
+                              ? [...config.classification.watched, c.name]
+                              : config.classification.watched.filter(
+                                  (w) => w.toLowerCase() !== c.name.toLowerCase()
+                                ),
+                          })
+                        }
+                        className="mt-0.5"
+                      />
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1.5 text-sm">
+                          {c.name}
+                          {c.sensitive ? (
+                            <span className="rounded bg-critical-subtle px-1.5 py-0.5 text-[0.625rem] font-medium text-critical">
+                              Sensible
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {c.sensitive
+                            ? 'Sus incidentes entran con severidad elevada.'
+                            : 'Se registra el movimiento del dato.'}
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+          )}
+
+          {config.classification.watched.length > 0 ? (
+            <ModeSelector
+              legend="Que hacer con las clases vigiladas"
+              value={config.classification.mode}
+              options={['alert', 'block'] as const}
+              labels={{ alert: 'Alertar', block: 'Bloquear' }}
+              help={{
+                alert:
+                  'Se abre un incidente por cada archivo de una clase vigilada. La escritura se completa.',
+                block:
+                  'Reservado para cuando exista prevencion real sobre archivos (modo kernel). Hoy, sobre guardado, se comporta como Alertar: registra pero no impide la escritura.',
+              }}
+              onChange={(mode) => patch('classification', { mode })}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

@@ -32,6 +32,7 @@ function activeChannels(config: ReturnType<typeof parsePolicyConfig>): string[] 
     active.push('Web')
   if (config.clipboard.mode !== 'allow') active.push('Portapapeles')
   if (config.printing.mode !== 'allow') active.push('Impresion')
+  if (config.classification.watched.length) active.push('Clasificacion')
   if (config.encryption.confidential_paths.length) active.push('Cifrado')
   if (config.monitoring.window_titles || config.monitoring.screenshots)
     active.push('Monitoreo')
