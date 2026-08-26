@@ -72,6 +72,7 @@ export type Database = {
           kind: 'install_msi' | 'push_file' | 'restart'
           payload: string
           expires_at: string
+          not_before: string
           signature: string
           status: 'pending' | 'sent' | 'running' | 'done' | 'failed'
           exit_code: number | null
@@ -89,6 +90,7 @@ export type Database = {
           kind: 'install_msi' | 'push_file' | 'restart'
           payload: string
           expires_at: string
+          not_before?: string
           signature: string
           status?: 'pending' | 'sent' | 'running' | 'done' | 'failed'
           exit_code?: number | null
@@ -849,6 +851,7 @@ export type Database = {
           p_payload: string
           p_expires_at: string
           p_signature: string
+          p_not_before?: string
         }
         Returns: string
       }

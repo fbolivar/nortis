@@ -11,6 +11,7 @@ export type TaskRow = {
   error: string | null
   created_at: string
   completed_at: string | null
+  not_before: string
   endpoints: { hostname: string } | null
 }
 
@@ -49,7 +50,13 @@ export function TaskList({ rows }: { rows: TaskRow[] }) {
           />
         ) : (
           rows.map((t) => {
-            const s = STATUS[t.status]
+            // "Programada" = su hora de entrega esta notablemente despues de su
+            // creacion (mas de un minuto). Se compara con created_at y no con el
+            // reloj para que el render sea puro.
+            const programada =
+              t.status === 'pending' &&
+              new Date(t.not_before).getTime() - new Date(t.created_at).getTime() > 60_000
+            const s = programada ? { label: 'Programada', tone: 'neutral' as const } : STATUS[t.status]
             return (
               <div key={t.id} className="rounded-xl border border-border/60 bg-surface-muted p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -59,7 +66,9 @@ export function TaskList({ rows }: { rows: TaskRow[] }) {
                       <span className="text-muted-foreground"> · {t.endpoints?.hostname ?? 'equipo'}</span>
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                      {formatDateTime(t.created_at)}
+                      {programada
+                        ? `Programada para ${formatDateTime(t.not_before)}`
+                        : formatDateTime(t.created_at)}
                       {t.exit_code != null ? ` · codigo ${t.exit_code}` : ''}
                     </p>
                   </div>

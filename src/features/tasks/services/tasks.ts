@@ -28,9 +28,15 @@ async function issue(
   endpointIds: string[],
   kind: TaskKind,
   fields: Record<string, unknown>,
+  notBefore?: Date,
 ): Promise<IssueResult> {
-  const notAfter = Math.floor(Date.now() / 1000) + TTL_SECONDS
+  // La caducidad se mide desde la hora PROGRAMADA, no desde ahora: una tarea
+  // agendada para las 2am con una firma que caduca en 6h seguiria vigente al
+  // ejecutarse. Sin programacion, `not_before` es ahora.
+  const startEpoch = Math.floor((notBefore?.getTime() ?? Date.now()) / 1000)
+  const notAfter = startEpoch + TTL_SECONDS
   const expiresAtIso = new Date(notAfter * 1000).toISOString()
+  const notBeforeIso = new Date(startEpoch * 1000).toISOString()
   const supabase = await createClient()
 
   const results = await Promise.all(
@@ -49,6 +55,7 @@ async function issue(
         p_payload: payloadText,
         p_expires_at: expiresAtIso,
         p_signature: signature,
+        p_not_before: notBeforeIso,
       })
       if (error) return { endpointId, error: error.message }
       return { endpointId, taskId: data as string }
@@ -56,6 +63,19 @@ async function issue(
   )
 
   return { results }
+}
+
+/**
+ * Interpreta la hora programada del formulario (datetime-local, hora del equipo
+ * del admin). Devuelve undefined si no hay o no es valida (se ejecuta enseguida),
+ * y rechaza una hora en el pasado.
+ */
+function parseSchedule(scheduleAt?: string): { at?: Date; error?: string } {
+  if (!scheduleAt) return {}
+  const at = new Date(scheduleAt)
+  if (Number.isNaN(at.getTime())) return { error: 'Fecha programada invalida' }
+  if (at.getTime() < Date.now() - 60_000) return { error: 'La hora programada esta en el pasado' }
+  return { at }
 }
 
 const endpointsSchema = z.array(z.string().uuid()).min(1, 'Seleccione al menos un equipo')
@@ -76,14 +96,17 @@ const installMsiSchema = z.object({
   url: httpsUrl,
   sha256: sha256Schema,
   args: z.string().max(1000).optional(),
+  scheduleAt: z.string().optional(),
 })
 export type IssueInstallMsiInput = z.input<typeof installMsiSchema>
 
 export async function issueInstallMsi(input: IssueInstallMsiInput): Promise<IssueResult> {
   const parsed = installMsiSchema.safeParse(input)
   if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
-  const { endpointIds, url, sha256, args } = parsed.data
-  return issue(endpointIds, 'install_msi', { url, sha256, args: args ?? '' })
+  const { endpointIds, url, sha256, args, scheduleAt } = parsed.data
+  const sched = parseSchedule(scheduleAt)
+  if (sched.error) return fail(endpointIds, sched.error)
+  return issue(endpointIds, 'install_msi', { url, sha256, args: args ?? '' }, sched.at)
 }
 
 /* ------------------------------------------------------------- push_file --- */
@@ -101,25 +124,33 @@ const pushFileSchema = z.object({
     .max(512)
     .refine((p) => /^[a-zA-Z]:\\/.test(p) || p.startsWith('\\\\'), 'Debe ser una ruta absoluta de Windows')
     .refine((p) => !p.includes('..'), 'La ruta no puede contener ".."'),
+  scheduleAt: z.string().optional(),
 })
 export type IssuePushFileInput = z.input<typeof pushFileSchema>
 
 export async function issuePushFile(input: IssuePushFileInput): Promise<IssueResult> {
   const parsed = pushFileSchema.safeParse(input)
   if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
-  const { endpointIds, url, sha256, destPath } = parsed.data
-  return issue(endpointIds, 'push_file', { url, sha256, dest_path: destPath })
+  const { endpointIds, url, sha256, destPath, scheduleAt } = parsed.data
+  const sched = parseSchedule(scheduleAt)
+  if (sched.error) return fail(endpointIds, sched.error)
+  return issue(endpointIds, 'push_file', { url, sha256, dest_path: destPath }, sched.at)
 }
 
 /* --------------------------------------------------------------- restart --- */
 
-const restartSchema = z.object({ endpointIds: endpointsSchema })
+const restartSchema = z.object({
+  endpointIds: endpointsSchema,
+  scheduleAt: z.string().optional(),
+})
 export type IssueRestartInput = z.input<typeof restartSchema>
 
 export async function issueRestart(input: IssueRestartInput): Promise<IssueResult> {
   const parsed = restartSchema.safeParse(input)
   if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
-  return issue(parsed.data.endpointIds, 'restart', {})
+  const sched = parseSchedule(parsed.data.scheduleAt)
+  if (sched.error) return fail(parsed.data.endpointIds, sched.error)
+  return issue(parsed.data.endpointIds, 'restart', {}, sched.at)
 }
 
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
