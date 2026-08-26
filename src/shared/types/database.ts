@@ -583,6 +583,8 @@ export type Database = {
           organization_id: string
           os_version: string | null
           policy_applied_at: string | null
+          public_ip: string | null
+          public_ip_at: string | null
           site_id: string | null
           status: Database['public']['Enums']['endpoint_status']
           updated_at: string
@@ -992,7 +994,7 @@ export type Database = {
         Returns: undefined
       }
       agent_report_inventory: {
-        Args: { p_credential: string; p_hardware: Json; p_software: Json }
+        Args: { p_credential: string; p_hardware: Json; p_software: Json; p_ip?: string | null }
         Returns: undefined
       }
       inventory_top_software: {

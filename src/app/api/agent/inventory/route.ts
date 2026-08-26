@@ -27,11 +27,18 @@ const schema = z.object({
 })
 
 export async function POST(request: Request) {
+  // La IP publica del equipo la ve el servidor en el origen de la peticion (el
+  // agente esta tras NAT y no la conoce). x-forwarded-for trae la cadena de
+  // proxies; la primera es el cliente real.
+  const fwd = request.headers.get('x-forwarded-for') ?? ''
+  const publicIp = fwd.split(',')[0]?.trim() || null
+
   return withAgentRequest(request, schema, async (body, { credential, client }) => {
     const { error } = await client.rpc('agent_report_inventory', {
       p_credential: credential,
       p_hardware: (body.hardware ?? {}) as Json,
       p_software: body.software as unknown as Json,
+      p_ip: publicIp,
     })
     if (error) return mapPostgresError(error)
     return NextResponse.json({ ok: true })

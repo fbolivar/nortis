@@ -41,7 +41,7 @@ export default async function EndpointDetailPage({
 
   const { data: endpoint } = await supabase
     .from('endpoints')
-    .select(`${ENDPOINT_COLUMNS}, hardware_info, inventory_at, security_profiles(id, name)`)
+    .select(`${ENDPOINT_COLUMNS}, hardware_info, inventory_at, public_ip, security_profiles(id, name)`)
     .eq('id', id)
     .maybeSingle()
 
@@ -148,6 +148,7 @@ export default async function EndpointDetailPage({
           hardware={endpoint.hardware_info}
           inventoryAt={endpoint.inventory_at}
           software={software ?? []}
+          publicIp={endpoint.public_ip}
         />
 
         {openIncidents > 0 ? (
