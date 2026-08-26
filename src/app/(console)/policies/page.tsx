@@ -23,6 +23,7 @@ function activeChannels(config: ReturnType<typeof parsePolicyConfig>): string[] 
   const active: string[] = []
   if (config.storage.allowed_paths.length || config.storage.blocked_extensions.length)
     active.push('Guardado')
+  if (config.apps.mode !== 'allow') active.push('Aplicaciones')
   if (config.usb.mode !== 'allow') active.push('USB')
   if (
     config.web.blocked_domains.length ||

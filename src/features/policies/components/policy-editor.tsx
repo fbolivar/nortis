@@ -34,6 +34,7 @@ import {
   extension,
   folderPath,
   processName,
+  processExe,
   usbSerial,
   type PolicyConfig,
 } from '@/shared/schemas/policy'
@@ -61,6 +62,7 @@ const validateExtension = makeValidator(extension)
 const validateDomain = makeValidator(domain)
 const validateSerial = makeValidator(usbSerial)
 const validateProcess = makeValidator(processName)
+const validateProcessExe = makeValidator(processExe)
 
 /** Selector de modo como grupo de opciones con su consecuencia escrita al lado. */
 function ModeSelector<T extends string>({
@@ -373,6 +375,48 @@ export function PolicyEditor({
                   'El agente RETIRA el archivo a una carpeta protegida en el equipo (recuperable desde el incidente) y abre el incidente. No evita la escritura inicial; la deshace enseguida. Aplica aunque el archivo este en carpeta permitida.',
               }}
               onChange={(mode) => patch('classification', { mode })}
+            />
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {/* -------------------------------------------------- Control de apps */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <CardTitle>Control de aplicaciones</CardTitle>
+              <CardDescription>
+                Programas cuyo uso se vigila o se impide. Se identifican por el nombre del
+                ejecutable (p. ej. <span className="font-mono">anydesk.exe</span>).
+              </CardDescription>
+            </div>
+            <Aplicacion canal="apps" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ModeSelector
+            legend="Que hacer con las aplicaciones de la lista"
+            value={config.apps.mode}
+            options={['allow', 'alert', 'block'] as const}
+            labels={{ allow: 'Permitir', alert: 'Alertar', block: 'Bloquear' }}
+            help={{
+              allow: 'No se controlan las aplicaciones.',
+              alert: 'Se abre un incidente cuando alguien abre un programa de la lista; el programa sigue funcionando.',
+              block:
+                'Ademas de abrir el incidente, el agente TERMINA el proceso en el siguiente sondeo (hasta ~1 min). Mitiga, no previene: el programa alcanza a arrancar.',
+            }}
+            onChange={(mode) => patch('apps', { mode })}
+          />
+          {config.apps.mode !== 'allow' ? (
+            <StringListInput
+              label="Aplicaciones bloqueadas"
+              help="Nombre del ejecutable con .exe. Ej: anydesk.exe, utorrent.exe, teamviewer.exe."
+              placeholder="anydesk.exe"
+              values={config.apps.blocklist}
+              onChange={(blocklist) => patch('apps', { blocklist })}
+              validate={validateProcessExe}
+              disabled={!canEdit}
             />
           ) : null}
         </CardContent>
