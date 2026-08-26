@@ -26,7 +26,7 @@ create schema if not exists tests;
 -- comprobaciones. pgTAP lo reporta como "Bad plan", que es su forma de decir
 -- "alguien añadio una prueba y no actualizo la cuenta" — o, como aquí, que la
 -- suite nunca se habia ejecutado entera.
-select plan(18);
+select plan(22);
 
 -- -----------------------------------------------------------------------------
 -- Fixture: dos tenants completamente separados
@@ -68,6 +68,21 @@ insert into public.dlp_incidents (organization_id, endpoint_id, rule_triggered, 
 values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'a1000000-0000-0000-0000-00000000000a', 'usb.blocked', 'high'),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'b1000000-0000-0000-0000-00000000000b', 'usb.blocked', 'high');
+
+-- Sedes (Fase 2): el equipo de Acme se asigna a una sede, y se crea un DELEGADO
+-- de Acme atado a OTRA sede vacia. El central (owner-a, sin sede) sigue viendo
+-- todo lo de Acme; el delegado no debe ver nada de la sede que no es la suya.
+insert into public.sites (id, organization_id, name) values
+  ('50000000-0000-0000-0000-00000000005a', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Sede Con Equipo'),
+  ('50000000-0000-0000-0000-00000000005b', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Sede Vacia');
+update public.endpoints set site_id = '50000000-0000-0000-0000-00000000005a'
+  where id = 'a1000000-0000-0000-0000-00000000000a';
+insert into auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-000000000000', '44444444-4444-4444-4444-444444444444', 'authenticated', 'authenticated', 'deleg-a@acme.test', '', now(), now());
+insert into public.users (id, organization_id, email, role, site_id)
+values
+  ('44444444-4444-4444-4444-444444444444', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'deleg-a@acme.test', 'admin', '50000000-0000-0000-0000-00000000005b');
 
 -- Helper: se hace pasar por un usuario con un nivel de MFA dado.
 create or replace function tests.impersonate(p_user uuid, p_aal text default 'aal2')
@@ -259,6 +274,31 @@ select is(
       and c.relname = (select nombre from particion_recien_creada)),
   true,
   'particiones: una particion recien creada nace con RLS habilitado'
+);
+
+-- =============================================================================
+-- Aislamiento por SEDE (consolas delegadas)
+-- =============================================================================
+select tests.impersonate('44444444-4444-4444-4444-444444444444');  -- delegado de "Sede Vacia"
+
+select is(
+  (select count(*) from public.endpoints)::int, 0,
+  'sedes: un delegado de una sede sin equipos no ve NINGUN equipo, aunque sean de su organizacion'
+);
+select is(
+  (select count(*) from public.dlp_incidents)::int, 0,
+  'sedes: el delegado no ve incidentes de equipos de otra sede'
+);
+select is(
+  (select count(*) from public.activity_events)::int, 0,
+  'sedes: el delegado no ve la actividad de equipos de otra sede'
+);
+
+select tests.impersonate('11111111-1111-1111-1111-111111111111');  -- owner CENTRAL de Acme (sin sede)
+
+select is(
+  (select count(*) from public.endpoints)::int, 1,
+  'sedes: el central (sin sede) sigue viendo todos los equipos de su organizacion'
 );
 
 select * from finish();

@@ -657,6 +657,7 @@ export type Database = {
           mfa_enabled: boolean
           organization_id: string
           role: Database['public']['Enums']['app_role']
+          site_id: string | null
           updated_at: string
         }
         Insert: {
@@ -668,6 +669,7 @@ export type Database = {
           mfa_enabled?: boolean
           organization_id: string
           role?: Database['public']['Enums']['app_role']
+          site_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -679,6 +681,7 @@ export type Database = {
           mfa_enabled?: boolean
           organization_id?: string
           role?: Database['public']['Enums']['app_role']
+          site_id?: string | null
           updated_at?: string
         }
         Relationships: []
