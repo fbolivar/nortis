@@ -202,6 +202,66 @@ export async function issueWipe(input: IssueWipeInput): Promise<IssueResult> {
   return issue(parsed.data.endpointIds, 'wipe', {})
 }
 
+/* ----------------------------------------------------------- screenshot ---- */
+
+const screenshotSchema = z.object({ endpointIds: endpointsSchema })
+export type IssueScreenshotInput = z.input<typeof screenshotSchema>
+
+export async function issueScreenshot(input: IssueScreenshotInput): Promise<IssueResult> {
+  const parsed = screenshotSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'screenshot', {})
+}
+
+/* -------------------------------------------------------------- message ---- */
+
+const messageSchema = z.object({
+  endpointIds: endpointsSchema,
+  title: z.string().trim().max(200).optional(),
+  body: z.string().trim().min(1, 'El mensaje no puede estar vacio').max(2000),
+})
+export type IssueMessageInput = z.input<typeof messageSchema>
+
+export async function issueMessage(input: IssueMessageInput): Promise<IssueResult> {
+  const parsed = messageSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  const { endpointIds, title, body } = parsed.data
+  return issue(endpointIds, 'message', { title: title ?? '', body })
+}
+
+/* ----------------------------------------------------------------- kill ---- */
+
+const killSchema = z.object({
+  endpointIds: endpointsSchema,
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Falta el nombre del proceso')
+    .max(255)
+    .refine((n) => /\.exe$/i.test(n), 'Nombre de ejecutable, ej: anydesk.exe'),
+})
+export type IssueKillInput = z.input<typeof killSchema>
+
+export async function issueKill(input: IssueKillInput): Promise<IssueResult> {
+  const parsed = killSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'kill', { name: parsed.data.name })
+}
+
+/* ------------------------------------------------------------ uninstall ---- */
+
+const uninstallSchema = z.object({
+  endpointIds: endpointsSchema,
+  name: z.string().trim().min(1, 'Falta el nombre del programa').max(300),
+})
+export type IssueUninstallInput = z.input<typeof uninstallSchema>
+
+export async function issueUninstall(input: IssueUninstallInput): Promise<IssueResult> {
+  const parsed = uninstallSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'uninstall', { name: parsed.data.name })
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'

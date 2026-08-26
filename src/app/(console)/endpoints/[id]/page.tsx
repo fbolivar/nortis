@@ -164,6 +164,8 @@ export default async function EndpointDetailPage({
           inventoryAt={endpoint.inventory_at}
           software={software ?? []}
           publicIp={endpoint.public_ip}
+          endpointId={endpoint.id}
+          canManage={canManage}
         />
 
         {(shots ?? []).length > 0 ? (
@@ -202,7 +204,13 @@ export default async function EndpointDetailPage({
           </Card>
         ) : null}
 
-        {canManage ? <RemoteActions endpointId={endpoint.id} hostname={endpoint.hostname} /> : null}
+        {canManage ? (
+          <RemoteActions
+            endpointId={endpoint.id}
+            hostname={endpoint.hostname}
+            consentSigned={Boolean(session?.organization?.monitoring_consent_signed_at)}
+          />
+        ) : null}
 
         {openIncidents > 0 ? (
           <Callout tone="critical" title="Este equipo tiene incidentes sin revisar">

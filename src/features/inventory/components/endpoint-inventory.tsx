@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
+import { issueUninstall } from '@/features/tasks/services/tasks'
 import {
   Cpu,
   HardDrive,
@@ -54,13 +55,32 @@ export function EndpointInventory({
   inventoryAt,
   software,
   publicIp,
+  endpointId,
+  canManage = false,
 }: {
   hardware: Json | null
   inventoryAt: string | null
   software: SoftwareRow[]
   publicIp?: string | null
+  endpointId?: string
+  canManage?: boolean
 }) {
   const [query, setQuery] = useState('')
+  const [pending, startUninstall] = useTransition()
+  const [uninstallMsg, setUninstallMsg] = useState<string>()
+
+  function uninstall(name: string) {
+    if (!endpointId) return
+    if (!window.confirm(`Desinstalar "${name}" del equipo? La accion es remota y silenciosa.`)) return
+    setUninstallMsg(undefined)
+    startUninstall(async () => {
+      const r = await issueUninstall({ endpointIds: [endpointId], name })
+      const res = r.results[0]
+      setUninstallMsg(res?.error ? `Error: ${res.error}` : `Desinstalacion de "${name}" enviada.`)
+    })
+  }
+
+  const puedeDesinstalar = canManage && Boolean(endpointId)
 
   const hw = (hardware && typeof hardware === 'object' && !Array.isArray(hardware)
     ? (hardware as Record<string, unknown>)
@@ -225,6 +245,9 @@ export function EndpointInventory({
             placeholder="Buscar programa o publicador…"
             className="mt-3 w-full max-w-sm rounded-lg border border-border bg-input px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-primary"
           />
+          {uninstallMsg ? (
+            <p className="mt-2 text-xs text-muted-foreground">{uninstallMsg}</p>
+          ) : null}
         </CardHeader>
         <CardContent className="p-0">
           {filtered.length === 0 ? (
@@ -246,6 +269,7 @@ export function EndpointInventory({
                     <Th>Programa</Th>
                     <Th>Version</Th>
                     <Th>Publicador</Th>
+                    {puedeDesinstalar ? <Th className="w-24" /> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -254,6 +278,18 @@ export function EndpointInventory({
                       <Td className="font-medium">{s.name}</Td>
                       <Td className="tabular-nums text-muted-foreground">{s.version ?? '—'}</Td>
                       <Td className="text-muted-foreground">{s.publisher ?? '—'}</Td>
+                      {puedeDesinstalar ? (
+                        <Td>
+                          <button
+                            type="button"
+                            onClick={() => uninstall(s.name)}
+                            disabled={pending}
+                            className="rounded-md px-2 py-1 text-xs text-critical transition-colors hover:bg-critical-subtle disabled:opacity-50"
+                          >
+                            Desinstalar
+                          </button>
+                        </Td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
