@@ -405,6 +405,32 @@ export function PolicyEditor({
         </CardContent>
       </Card>
 
+      {/* ------------------------------------------------------------- Sesion */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bloqueo de sesion</CardTitle>
+          <CardDescription>
+            Windows bloquea la sesion tras N minutos de inactividad. Lo impone el propio
+            sistema operativo, asi que funciona igual en consola y por RDP.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="lock-min">Minutos de inactividad (0 = no gestionar)</Label>
+          <Input
+            id="lock-min"
+            type="number"
+            min={0}
+            max={9999}
+            value={config.session.lock_after_minutes}
+            onChange={(e) =>
+              patch('session', { lock_after_minutes: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })
+            }
+            disabled={!canEdit}
+            className="max-w-[10rem]"
+          />
+        </CardContent>
+      </Card>
+
       {/* ------------------------------------------------------------- Cifrado */}
       <Card>
         <CardHeader>
