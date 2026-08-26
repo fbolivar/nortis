@@ -230,7 +230,34 @@ export function EndpointInventory({
               label="Encendido hace"
               value={postura.uptimeDays === undefined ? '—' : `${postura.uptimeDays} dias`}
             />
+            <PostureItem label="Ultimo escaneo rapido" value={fechaCorta(postura.lastQuickScan)} />
+            <PostureItem label="Ultimo escaneo completo" value={fechaCorta(postura.lastFullScan)} />
           </dl>
+
+          {(postura.threats ?? []).length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">
+                Amenazas detectadas por el antivirus
+              </p>
+              <ul className="space-y-1">
+                {(postura.threats ?? []).map((t, i) => (
+                  <li
+                    key={`${t.name}-${i}`}
+                    className="flex flex-wrap items-center gap-2 text-sm"
+                  >
+                    <ShieldAlert className="h-3.5 w-3.5 text-critical" aria-hidden />
+                    <span className="font-mono">{t.name}</span>
+                    <Badge tone={t.active ? 'critical' : 'neutral'}>
+                      {t.active ? 'Activa' : 'Resuelta'}
+                    </Badge>
+                    {t.severity !== undefined ? (
+                      <span className="text-xs text-muted-foreground">sev {t.severity}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -354,6 +381,13 @@ export function EndpointInventory({
       </Card>
     </div>
   )
+}
+
+/** Fecha corta (dd/mm/aaaa) para las marcas de escaneo; "Nunca" si no hay. */
+function fechaCorta(iso?: string): string {
+  if (!iso) return 'Nunca'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es')
 }
 
 function PostureItem({ label, value }: { label: string; value: string }) {

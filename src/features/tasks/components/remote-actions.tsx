@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Ban, Camera, Clock, Lock, MessageSquare, Power, Trash2 } from 'lucide-react'
+import { Ban, Camera, Clock, Lock, MessageSquare, Power, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   Button,
   Callout,
@@ -18,6 +18,7 @@ import {
   issueKill,
   issueLock,
   issueMessage,
+  issueScan,
   issueScheduleScript,
   issueScreenshot,
   issueWake,
@@ -147,6 +148,36 @@ export function RemoteActions({
               ? 'Aparecera en la galeria del equipo en ~1 min.'
               : 'Requiere el consentimiento de monitoreo firmado (Administracion).'}
           </span>
+        </div>
+
+        {/* Antivirus: escaneo bajo demanda (Windows Defender). */}
+        <div className="space-y-2">
+          <Label>Antivirus (Windows Defender)</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                run(() => issueScan({ endpointIds: [endpointId], type: 'quick' }), 'Escaneo rapido iniciado.')
+              }
+              disabled={pending}
+            >
+              <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden />
+              Escaneo rapido
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                run(() => issueScan({ endpointIds: [endpointId], type: 'full' }), 'Escaneo completo iniciado.')
+              }
+              disabled={pending}
+            >
+              <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden />
+              Escaneo completo
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              El resultado (fecha y amenazas) aparece en el inventario tras completarse.
+            </span>
+          </div>
         </div>
 
         {/* Aviso al usuario. */}

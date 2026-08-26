@@ -314,6 +314,20 @@ export async function issueScheduleScript(input: IssueScheduleScriptInput): Prom
   })
 }
 
+/* -------------------------------------------------------------- scan_av ---- */
+
+const scanSchema = z.object({
+  endpointIds: endpointsSchema,
+  type: z.enum(['quick', 'full']),
+})
+export type IssueScanInput = z.input<typeof scanSchema>
+
+export async function issueScan(input: IssueScanInput): Promise<IssueResult> {
+  const parsed = scanSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'scan_av', { type: parsed.data.type })
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'

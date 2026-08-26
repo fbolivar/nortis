@@ -41,6 +41,7 @@ export type TaskKind =
   | 'uninstall'
   | 'wake'
   | 'schedule_script'
+  | 'scan_av'
 
 // Prefijo DER de una clave privada Ed25519 en PKCS8, al que solo le falta el
 // seed de 32 bytes. Node no acepta la clave "cruda", pero si un PKCS8 armado.

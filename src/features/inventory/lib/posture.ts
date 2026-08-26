@@ -15,6 +15,16 @@ export interface Posture {
   uptimeDays?: number
   diskUsedPct?: number
   diskEncrypted?: boolean
+  lastQuickScan?: string
+  lastFullScan?: string
+  threats?: ThreatItem[]
+}
+
+/** Amenaza conocida por Defender (Get-MpThreat). */
+export interface ThreatItem {
+  name: string
+  severity?: number
+  active?: boolean
 }
 
 function obj(v: unknown): Record<string, unknown> | undefined {
@@ -32,6 +42,27 @@ function truthy(v: unknown): boolean | undefined {
 function num(v: unknown): number | undefined {
   const n = typeof v === 'number' ? v : Number(v)
   return Number.isFinite(n) ? n : undefined
+}
+
+/**
+ * Normaliza una fecha de PowerShell a ISO. Windows PowerShell 5.1 serializa
+ * DateTime como `/Date(ms)/`; PS7 la deja en ISO. Devuelve undefined si es el
+ * centinela de "nunca" (año 1) o no se puede interpretar.
+ */
+function psDate(v: unknown): string | undefined {
+  let ms: number | undefined
+  if (typeof v === 'string') {
+    const m = v.match(/\/Date\((-?\d+)\)\//)
+    if (m) ms = Number(m[1])
+    else {
+      const t = Date.parse(v)
+      if (Number.isFinite(t)) ms = t
+    }
+  }
+  if (ms === undefined || !Number.isFinite(ms)) return undefined
+  // Fechas anteriores a 2001 = centinela "nunca escaneado".
+  if (ms < 978307200000) return undefined
+  return new Date(ms).toISOString()
 }
 
 export function readPosture(hardware: Json | null): Posture {
@@ -57,7 +88,21 @@ export function readPosture(hardware: Json | null): Posture {
       p.antivirusEnabled = truthy(av.AntivirusEnabled)
       p.realtimeEnabled = truthy(av.RealTimeProtectionEnabled)
       p.signatureAgeDays = num(av.AntivirusSignatureAge)
+      p.lastQuickScan = psDate(av.QuickScanEndTime)
+      p.lastFullScan = psDate(av.FullScanEndTime)
     }
+    // amenazas: puede venir como objeto unico o arreglo de {ThreatName, SeverityID, IsActive}.
+    const th = sec.threats
+    const rawThreats = Array.isArray(th) ? th : th ? [th] : []
+    const threats = rawThreats
+      .map((t): ThreatItem | undefined => {
+        const o = obj(t)
+        const name = o?.ThreatName
+        if (typeof name !== 'string' || name.trim() === '') return undefined
+        return { name, severity: num(o?.SeverityID), active: truthy(o?.IsActive) }
+      })
+      .filter((t): t is ThreatItem => t !== undefined)
+    if (threats.length > 0) p.threats = threats
     // firewall puede venir como arreglo de perfiles {Name, Enabled} o un objeto.
     const fw = sec.firewall
     const perfiles = Array.isArray(fw) ? fw : fw ? [fw] : []
@@ -77,6 +122,12 @@ export interface HealthFlag {
 export function healthFlags(p: Posture): HealthFlag[] {
   const flags: HealthFlag[] = []
   if (p.diskEncrypted === false) flags.push({ label: 'Disco sin cifrar', tone: 'critical' })
+  const amenazasActivas = (p.threats ?? []).filter((t) => t.active).length
+  if (amenazasActivas > 0)
+    flags.push({
+      label: `${amenazasActivas} amenaza${amenazasActivas > 1 ? 's' : ''} activa${amenazasActivas > 1 ? 's' : ''}`,
+      tone: 'critical',
+    })
   if (p.antivirusEnabled === false) flags.push({ label: 'Antivirus desactivado', tone: 'critical' })
   if (p.realtimeEnabled === false) flags.push({ label: 'Proteccion en tiempo real off', tone: 'critical' })
   if (p.firewallOn === false) flags.push({ label: 'Cortafuegos desactivado', tone: 'critical' })
