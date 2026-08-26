@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { signTask } from '@/shared/lib/agent-signing'
+import { signTask, type TaskKind } from '@/shared/lib/agent-signing'
 
 /**
  * Emision de tareas de ejecucion remota. La FIRMA se calcula aqui, en el
@@ -15,57 +15,37 @@ import { signTask } from '@/shared/lib/agent-signing'
 // aunque la firma sea valida: acota la reejecucion de una tarea copiada.
 const TTL_SECONDS = 60 * 60 * 6
 
-const installMsiSchema = z.object({
-  endpointIds: z.array(z.string().uuid()).min(1, 'Seleccione al menos un equipo'),
-  // Solo HTTPS: el MSI se descarga en el equipo y su integridad la garantiza el
-  // sha256, pero el canal tambien debe ser cifrado.
-  url: z.string().url().refine((u) => u.startsWith('https://'), 'La URL debe ser https'),
-  sha256: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-f0-9]{64}$/, 'sha256 invalido (64 hex)'),
-  args: z.string().max(1000).optional(),
-})
-
-export type IssueInstallMsiInput = z.input<typeof installMsiSchema>
-
 export type IssueResult = {
   results: { endpointId: string; taskId?: string; error?: string }[]
 }
 
 /**
- * Encarga la instalacion de un MSI en uno o varios equipos. Firma una tarea por
- * equipo —la firma ata cada tarea a su `endpoint_id`, para que no pueda
- * reejecutarse en otro— y devuelve el resultado por equipo.
+ * Firma y emite una tarea a cada equipo. La firma ata cada tarea a su
+ * `endpoint_id` (una tarea firmada para A no vale en B) y el payload firmado
+ * lleva la caducidad. Devuelve el resultado por equipo.
  */
-export async function issueInstallMsi(input: IssueInstallMsiInput): Promise<IssueResult> {
-  const parsed = installMsiSchema.safeParse(input)
-  if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? 'Datos invalidos'
-    return { results: (input?.endpointIds ?? []).map((endpointId) => ({ endpointId, error: msg })) }
-  }
-  const { endpointIds, url, sha256, args } = parsed.data
-
+async function issue(
+  endpointIds: string[],
+  kind: TaskKind,
+  fields: Record<string, unknown>,
+): Promise<IssueResult> {
   const notAfter = Math.floor(Date.now() / 1000) + TTL_SECONDS
   const expiresAtIso = new Date(notAfter * 1000).toISOString()
   const supabase = await createClient()
 
   const results = await Promise.all(
     endpointIds.map(async (endpointId) => {
-      // El payload firmado incluye la caducidad (`not_after`), que el agente
-      // exige. Se guarda como texto exacto: es sobre esos bytes que se firma.
-      const payloadText = JSON.stringify({ url, sha256, args: args ?? '', not_after: notAfter })
+      const payloadText = JSON.stringify({ ...fields, not_after: notAfter })
       let signature: string
       try {
-        signature = signTask(endpointId, 'install_msi', payloadText)
+        signature = signTask(endpointId, kind, payloadText)
       } catch (e) {
         return { endpointId, error: e instanceof Error ? e.message : 'No se pudo firmar' }
       }
 
       const { data, error } = await supabase.rpc('issue_agent_task', {
         p_endpoint_id: endpointId,
-        p_kind: 'install_msi',
+        p_kind: kind,
         p_payload: payloadText,
         p_expires_at: expiresAtIso,
         p_signature: signature,
@@ -76,4 +56,74 @@ export async function issueInstallMsi(input: IssueInstallMsiInput): Promise<Issu
   )
 
   return { results }
+}
+
+const endpointsSchema = z.array(z.string().uuid()).min(1, 'Seleccione al menos un equipo')
+const sha256Schema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-f0-9]{64}$/, 'sha256 invalido (64 hex)')
+const httpsUrl = z
+  .string()
+  .url()
+  .refine((u) => u.startsWith('https://'), 'La URL debe ser https')
+
+/* ----------------------------------------------------------- install_msi --- */
+
+const installMsiSchema = z.object({
+  endpointIds: endpointsSchema,
+  url: httpsUrl,
+  sha256: sha256Schema,
+  args: z.string().max(1000).optional(),
+})
+export type IssueInstallMsiInput = z.input<typeof installMsiSchema>
+
+export async function issueInstallMsi(input: IssueInstallMsiInput): Promise<IssueResult> {
+  const parsed = installMsiSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  const { endpointIds, url, sha256, args } = parsed.data
+  return issue(endpointIds, 'install_msi', { url, sha256, args: args ?? '' })
+}
+
+/* ------------------------------------------------------------- push_file --- */
+
+const pushFileSchema = z.object({
+  endpointIds: endpointsSchema,
+  url: httpsUrl,
+  sha256: sha256Schema,
+  // Ruta destino absoluta de Windows (C:\... o \\servidor\...). El agente vuelve
+  // a validar que sea absoluta y sin "..".
+  destPath: z
+    .string()
+    .trim()
+    .min(3, 'Ruta destino requerida')
+    .max(512)
+    .refine((p) => /^[a-zA-Z]:\\/.test(p) || p.startsWith('\\\\'), 'Debe ser una ruta absoluta de Windows')
+    .refine((p) => !p.includes('..'), 'La ruta no puede contener ".."'),
+})
+export type IssuePushFileInput = z.input<typeof pushFileSchema>
+
+export async function issuePushFile(input: IssuePushFileInput): Promise<IssueResult> {
+  const parsed = pushFileSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  const { endpointIds, url, sha256, destPath } = parsed.data
+  return issue(endpointIds, 'push_file', { url, sha256, dest_path: destPath })
+}
+
+/* --------------------------------------------------------------- restart --- */
+
+const restartSchema = z.object({ endpointIds: endpointsSchema })
+export type IssueRestartInput = z.input<typeof restartSchema>
+
+export async function issueRestart(input: IssueRestartInput): Promise<IssueResult> {
+  const parsed = restartSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'restart', {})
+}
+
+/** Resultado de error homogeneo por equipo cuando la validacion falla. */
+function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
+  const msg = message ?? 'Datos invalidos'
+  return { results: (endpointIds ?? []).map((endpointId) => ({ endpointId, error: msg })) }
 }
