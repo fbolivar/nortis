@@ -26,16 +26,38 @@ import { Badge } from '@/shared/components/ui'
 import { InstallAppButton } from '@/shared/components/install-app-button'
 import type { AppRole } from '@/shared/types/database'
 
-const NAV = [
-  { href: '/dashboard', label: 'Panel', icon: LayoutDashboard },
-  { href: '/endpoints', label: 'Equipos', icon: MonitorSmartphone },
-  { href: '/activity', label: 'Trazabilidad', icon: FileSearch },
-  { href: '/incidents', label: 'Incidentes', icon: ShieldAlert },
-  { href: '/policies', label: 'Politicas', icon: SlidersHorizontal },
-  { href: '/vault', label: 'Cifrado', icon: Lock },
-  { href: '/tasks', label: 'Despliegue', icon: Rocket },
-  { href: '/updates', label: 'Actualizaciones', icon: RefreshCw },
-  { href: '/settings', label: 'Administracion', icon: Settings },
+/**
+ * Navegacion agrupada por fase de trabajo, como una consola DLP madura: primero
+ * lo que DETECTA (panel, incidentes, trazas, parque), luego lo que RESPONDE
+ * (politicas, cifrado, despliegue) y por ultimo lo que se GESTIONA
+ * (actualizaciones, administracion). El agrupado le da al menu un mapa mental en
+ * vez de una lista plana de nueve entradas.
+ */
+const NAV_GROUPS = [
+  {
+    title: 'Detectar',
+    items: [
+      { href: '/dashboard', label: 'Panel', icon: LayoutDashboard },
+      { href: '/incidents', label: 'Incidentes', icon: ShieldAlert },
+      { href: '/activity', label: 'Trazabilidad', icon: FileSearch },
+      { href: '/endpoints', label: 'Equipos', icon: MonitorSmartphone },
+    ],
+  },
+  {
+    title: 'Responder',
+    items: [
+      { href: '/policies', label: 'Politicas', icon: SlidersHorizontal },
+      { href: '/vault', label: 'Cifrado', icon: Lock },
+      { href: '/tasks', label: 'Despliegue', icon: Rocket },
+    ],
+  },
+  {
+    title: 'Gestionar',
+    items: [
+      { href: '/updates', label: 'Actualizaciones', icon: RefreshCw },
+      { href: '/settings', label: 'Administracion', icon: Settings },
+    ],
+  },
 ] as const
 
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -80,37 +102,58 @@ function Brand() {
   )
 }
 
-/** Lista de navegacion vertical. Compartida entre la barra lateral y el panel movil. */
+/** Lista de navegacion vertical, agrupada. Compartida entre barra lateral y panel movil. */
 function NavList({
   pathname,
+  incidentCount = 0,
   onNavigate,
 }: {
   pathname: string
+  /** Incidentes abiertos, para el badge de la entrada "Incidentes". */
+  incidentCount?: number
   onNavigate?: () => void
 }) {
   return (
-    <nav aria-label="Navegacion principal" className="flex flex-col gap-1">
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href)
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? 'page' : undefined}
-            onClick={onNavigate}
-            className={cn(
-              'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
-              active
-                ? 'bg-primary text-primary-foreground shadow-pill'
-                : 'text-ink-muted hover:bg-white/5 hover:text-ink-foreground'
-            )}
-          >
-            <Icon className="h-[1.15rem] w-[1.15rem] shrink-0" aria-hidden />
-            <span className="truncate">{label}</span>
-          </Link>
-        )
-      })}
+    <nav aria-label="Navegacion principal" className="flex flex-col gap-5">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.title} className="flex flex-col gap-1">
+          <p className="px-3 pb-1 text-[0.7rem] font-semibold uppercase tracking-wider text-ink-muted/70">
+            {group.title}
+          </p>
+          {group.items.map(({ href, label, icon: Icon }) => {
+            const active = isActive(pathname, href)
+            const badge = href === '/incidents' && incidentCount > 0 ? incidentCount : null
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? 'page' : undefined}
+                onClick={onNavigate}
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
+                  active
+                    ? 'bg-primary text-primary-foreground shadow-pill'
+                    : 'text-ink-muted hover:bg-white/5 hover:text-ink-foreground'
+                )}
+              >
+                <Icon className="h-[1.15rem] w-[1.15rem] shrink-0" aria-hidden />
+                <span className="truncate">{label}</span>
+                {badge ? (
+                  <span
+                    className={cn(
+                      'ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold tabular-nums',
+                      active ? 'bg-white/25 text-primary-foreground' : 'bg-critical text-critical-foreground'
+                    )}
+                  >
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                ) : null}
+              </Link>
+            )
+          })}
+        </div>
+      ))}
     </nav>
   )
 }
@@ -141,11 +184,14 @@ export function ConsoleShell({
   organizationName,
   email,
   role,
+  incidentCount = 0,
 }: {
   children: React.ReactNode
   organizationName: string
   email: string
   role: AppRole
+  /** Incidentes abiertos, para el badge de navegacion. */
+  incidentCount?: number
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -198,7 +244,7 @@ export function ConsoleShell({
           <Brand />
         </div>
         <div className="flex-1 overflow-y-auto scroll-ink px-3 py-2">
-          <NavList pathname={pathname} />
+          <NavList pathname={pathname} incidentCount={incidentCount} />
         </div>
         <div className="p-3">
           <OrgCard organizationName={organizationName} role={role} />
@@ -320,7 +366,11 @@ export function ConsoleShell({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto scroll-ink px-3 py-2">
-              <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+              <NavList
+                pathname={pathname}
+                incidentCount={incidentCount}
+                onNavigate={() => setMenuOpen(false)}
+              />
             </div>
             <div className="space-y-3 border-t border-white/10 p-3">
               <OrgCard organizationName={organizationName} role={role} />
