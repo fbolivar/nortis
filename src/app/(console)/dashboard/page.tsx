@@ -16,6 +16,12 @@ import {
 } from '@/features/incidents/components/incident-spotlight'
 import { ConnectedDevices } from '@/features/telemetry/components/connected-devices'
 import { ProtectionCard, type ProtectionItem } from '@/features/dashboard/components/protection-card'
+import {
+  OpenInsightsDonut,
+  IncidentsOverTimeChart,
+} from '@/features/dashboard/components/insights-charts'
+import { UsersByIncidents } from '@/features/dashboard/components/users-by-incidents'
+import { ruleLabel } from '@/features/incidents/types/incidents'
 
 /** Titulo de seccion del panel. */
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -24,6 +30,66 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 /** Un equipo sin señal en 15 minutos se considera fuera de linea. */
 const OFFLINE_THRESHOLD_MIN = 15
+
+/** Dias que cubren las agregaciones de incidentes del panel. */
+const INSIGHT_DAYS = 30
+
+/** Lee el usuario (actor) del snapshot de un incidente sin confiar en su forma. */
+function incidentActor(snapshot: unknown): string | null {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null
+  const value = (snapshot as Record<string, unknown>).user
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+type IncidentRow = {
+  rule_triggered: string
+  status: string
+  detected_at: string
+  event_snapshot: unknown
+}
+
+/** Incidentes abiertos agrupados por tipo de regla, para la dona. */
+function openByType(rows: IncidentRow[]): { type: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const r of rows) {
+    if (r.status !== 'open') continue
+    const key = ruleLabel(r.rule_triggered)
+    m.set(key, (m.get(key) ?? 0) + 1)
+  }
+  return [...m.entries()].map(([type, count]) => ({ type, count }))
+}
+
+/** Incidentes por dia (rellenando huecos con cero) para la barra en el tiempo. */
+function incidentsPerDay(rows: IncidentRow[], days = INSIGHT_DAYS): { label: string; count: number }[] {
+  const buckets = new Map<string, number>()
+  const today = new Date()
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const day = new Date(today)
+    day.setDate(today.getDate() - i)
+    buckets.set(day.toISOString().slice(0, 10), 0)
+  }
+  for (const r of rows) {
+    const key = r.detected_at.slice(0, 10)
+    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1)
+  }
+  return [...buckets.entries()].map(([iso, count]) => ({
+    label: new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }),
+    count,
+  }))
+}
+
+/** Top usuarios por numero de incidentes atribuidos. */
+function usersByIncidents(rows: IncidentRow[], limit = 6): { user: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const r of rows) {
+    const user = incidentActor(r.event_snapshot)
+    if (user) m.set(user, (m.get(user) ?? 0) + 1)
+  }
+  return [...m.entries()]
+    .map(([user, count]) => ({ user, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -38,6 +104,7 @@ export default async function DashboardPage() {
     unassigned,
     currentRelease,
     recent,
+    incidents30d,
     byDay,
     byHour,
     byCategory,
@@ -75,6 +142,13 @@ export default async function DashboardPage() {
       )
       .order('detected_at', { ascending: false })
       .limit(12),
+    // Incidentes de los ultimos 30 dias para las agregaciones del panel (dona por
+    // tipo, evolucion en el tiempo y usuarios). Solo los campos que se agregan.
+    supabase
+      .from('dlp_incidents')
+      .select('rule_triggered, status, detected_at, event_snapshot')
+      .gte('detected_at', offlineCutoffISO(INSIGHT_DAYS * 24 * 60))
+      .limit(5000),
     // Las agregaciones corren en Postgres (SECURITY INVOKER, asi que RLS acota
     // por organizacion). Traer los eventos crudos para contarlos en Node
     // funcionaria con datos de demo y se caeria con un cliente real.
@@ -93,6 +167,12 @@ export default async function DashboardPage() {
   const severeCount = severeOpen.count ?? 0
   const unassignedCount = unassigned.count ?? 0
   const recentIncidents = (recent.data ?? []) as unknown as SpotlightIncident[]
+
+  // Agregaciones de incidentes (30 dias) para Insights y Comportamiento.
+  const incidentRows = (incidents30d.data ?? []) as unknown as IncidentRow[]
+  const insightsByType = openByType(incidentRows)
+  const insightsSeries = incidentsPerDay(incidentRows)
+  const topUsersByIncidents = usersByIncidents(incidentRows)
 
   const currentVersion = currentRelease.data?.[0]?.version ?? null
 
@@ -180,6 +260,10 @@ export default async function DashboardPage() {
         {/* ------------------------------------------------------ Incidentes --- */}
         <section className="space-y-3">
           <SectionTitle>Incidentes</SectionTitle>
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            <OpenInsightsDonut data={insightsByType} />
+            <IncidentsOverTimeChart data={insightsSeries} />
+          </div>
           <IncidentSpotlight
             incidents={recentIncidents}
             emptyTitle={
@@ -202,14 +286,28 @@ export default async function DashboardPage() {
 
         {/* ------------------------------------------------------------ Datos --- */}
         {/*
-          Que sale, por donde y a que dispositivos externos. El reparto no es
-          arbitrario: el donut y los dos rankings son listas cortas que se leen
-          bien en un tercio, y los dispositivos externos son otra via de salida.
+          Que sale y a que dispositivos externos. Los patrones por usuario/app/sitio
+          viven en Comportamiento; aqui queda el reparto por categoria y la salida
+          por dispositivos.
         */}
         <section className="space-y-3">
           <SectionTitle>Datos</SectionTitle>
-          <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-start gap-3 lg:grid-cols-2">
             <CategoryDonutChart data={byCategory.data ?? []} delay={120} />
+            <ActivityByDayChart data={byDay.data ?? []} delay={180} />
+          </div>
+          <ConnectedDevices rows={connectedUsb.data ?? []} />
+        </section>
+
+        {/* --------------------------------------------------- Comportamiento --- */}
+        {/*
+          La vista centrada en la persona: quien acumula incidentes, que
+          aplicaciones y sitios se usan mas, y como se distribuye la actividad.
+        */}
+        <section className="space-y-3">
+          <SectionTitle>Comportamiento</SectionTitle>
+          <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <UsersByIncidents rows={topUsersByIncidents} />
             <RankingChart
               title="Aplicaciones mas usadas"
               description="Ultimos 7 dias"
@@ -231,21 +329,7 @@ export default async function DashboardPage() {
               delay={240}
             />
           </div>
-          <ConnectedDevices rows={connectedUsb.data ?? []} />
-        </section>
-
-        {/* --------------------------------------------------- Comportamiento --- */}
-        {/*
-          Patrones de uso en el tiempo. Las series necesitan ancho: una linea de
-          14 puntos en un tercio de pantalla convierte variaciones reales en
-          dientes de sierra.
-        */}
-        <section className="space-y-3">
-          <SectionTitle>Comportamiento</SectionTitle>
-          <div className="grid items-start gap-3 lg:grid-cols-2">
-            <ActivityByDayChart data={byDay.data ?? []} />
-            <ActivityByHourChart data={byHour.data ?? []} delay={60} />
-          </div>
+          <ActivityByHourChart data={byHour.data ?? []} delay={60} />
         </section>
       </div>
     </>
