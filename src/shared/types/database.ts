@@ -69,7 +69,7 @@ export type Database = {
           id: string
           organization_id: string
           endpoint_id: string
-          kind: 'install_msi' | 'push_file' | 'restart'
+          kind: 'install_msi' | 'push_file' | 'restart' | 'run_script'
           payload: string
           expires_at: string
           not_before: string
@@ -87,7 +87,7 @@ export type Database = {
           id?: string
           organization_id: string
           endpoint_id: string
-          kind: 'install_msi' | 'push_file' | 'restart'
+          kind: 'install_msi' | 'push_file' | 'restart' | 'run_script'
           payload: string
           expires_at: string
           not_before?: string

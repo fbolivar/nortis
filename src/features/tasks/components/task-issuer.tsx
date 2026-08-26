@@ -17,6 +17,7 @@ import {
   issueInstallMsi,
   issuePushFile,
   issueRestart,
+  issueRunScript,
   type IssueResult,
 } from '@/features/tasks/services/tasks'
 
@@ -27,11 +28,12 @@ type Endpoint = {
   status: string | null
 }
 
-type Kind = 'install_msi' | 'push_file' | 'restart'
+type Kind = 'install_msi' | 'push_file' | 'restart' | 'run_script'
 
 const KINDS: { id: Kind; label: string; help: string }[] = [
   { id: 'install_msi', label: 'Instalar MSI', help: 'Descarga e instala un MSI en silencio.' },
   { id: 'push_file', label: 'Colocar archivo', help: 'Descarga un archivo y lo coloca en una ruta.' },
+  { id: 'run_script', label: 'Ejecutar script', help: 'Corre un script PowerShell o cmd como SYSTEM.' },
   { id: 'restart', label: 'Reiniciar', help: 'Reinicia el equipo con 60 s de aviso.' },
 ]
 
@@ -52,6 +54,8 @@ export function TaskIssuer({
   const [sha256, setSha256] = useState('')
   const [args, setArgs] = useState('')
   const [destPath, setDestPath] = useState('')
+  const [interpreter, setInterpreter] = useState<'powershell' | 'cmd'>('powershell')
+  const [script, setScript] = useState('')
   const [scheduleAt, setScheduleAt] = useState('')
   const [result, setResult] = useState<IssueResult | null>(null)
 
@@ -85,6 +89,8 @@ export function TaskIssuer({
         res = await issueInstallMsi({ endpointIds, url, sha256, args, scheduleAt: schedule })
       else if (kind === 'push_file')
         res = await issuePushFile({ endpointIds, url, sha256, destPath, scheduleAt: schedule })
+      else if (kind === 'run_script')
+        res = await issueRunScript({ endpointIds, interpreter, script, scheduleAt: schedule })
       else res = await issueRestart({ endpointIds, scheduleAt: schedule })
       setResult(res)
       router.refresh()
@@ -134,7 +140,7 @@ export function TaskIssuer({
         </div>
 
         {/* Campos por accion */}
-        {kind !== 'restart' ? (
+        {kind === 'install_msi' || kind === 'push_file' ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="url">URL del archivo (https)</Label>
@@ -182,6 +188,50 @@ export function TaskIssuer({
                 />
               </div>
             )}
+          </div>
+        ) : kind === 'run_script' ? (
+          <div className="space-y-3">
+            <div>
+              <Label>Interprete</Label>
+              <div className="flex gap-2">
+                {(['powershell', 'cmd'] as const).map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setInterpreter(i)}
+                    className={cn(
+                      'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      interpreter === i
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-surface text-foreground hover:bg-muted',
+                    )}
+                  >
+                    {i === 'powershell' ? 'PowerShell' : 'CMD'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="script">Script</Label>
+              <textarea
+                id="script"
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                rows={8}
+                spellCheck={false}
+                placeholder={
+                  interpreter === 'powershell'
+                    ? 'Write-Output "hola desde $(hostname)"'
+                    : 'echo hola desde %COMPUTERNAME%'
+                }
+                className="w-full rounded-xl border border-border bg-input px-4 py-3 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15"
+              />
+            </div>
+            <Callout tone="warning">
+              El script se ejecuta <strong>como SYSTEM</strong> en el equipo. Va firmado por la
+              consola y el agente verifica la firma antes de correrlo.
+            </Callout>
           </div>
         ) : (
           <Callout tone="warning">
