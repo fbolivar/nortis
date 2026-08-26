@@ -2,12 +2,14 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { issueUninstall } from '@/features/tasks/services/tasks'
+import { readPosture, healthFlags } from '@/features/inventory/lib/posture'
 import {
   Cpu,
   HardDrive,
   MapPin,
   MemoryStick,
   Server,
+  ShieldAlert,
   ShieldCheck,
   ShieldOff,
   ShieldQuestion,
@@ -81,6 +83,10 @@ export function EndpointInventory({
   }
 
   const puedeDesinstalar = canManage && Boolean(endpointId)
+
+  const postura = readPosture(hardware)
+  const flags = healthFlags(postura)
+  const si = (v?: boolean) => (v === undefined ? '—' : v ? 'Si' : 'No')
 
   const hw = (hardware && typeof hardware === 'object' && !Array.isArray(hardware)
     ? (hardware as Record<string, unknown>)
@@ -177,6 +183,54 @@ export function EndpointInventory({
               hint={str(hw['manufacturer']) ?? undefined}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Postura de seguridad y salud</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {flags.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {flags.map((f) => (
+                <span
+                  key={f.label}
+                  className={
+                    'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ' +
+                    (f.tone === 'critical'
+                      ? 'bg-critical-subtle text-critical'
+                      : 'bg-warning-subtle text-warning')
+                  }
+                >
+                  <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
+                  {f.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-success">Sin alertas de seguridad ni de salud.</p>
+          )}
+
+          <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <PostureItem label="Antivirus activo" value={si(postura.antivirusEnabled)} />
+            <PostureItem label="Proteccion en tiempo real" value={si(postura.realtimeEnabled)} />
+            <PostureItem
+              label="Edad de firmas"
+              value={postura.signatureAgeDays === undefined ? '—' : `${postura.signatureAgeDays} d`}
+            />
+            <PostureItem label="Cortafuegos" value={si(postura.firewallOn)} />
+            <PostureItem label="Disco cifrado" value={si(postura.diskEncrypted)} />
+            <PostureItem label="Reinicio pendiente" value={si(postura.pendingReboot)} />
+            <PostureItem
+              label="Uso de disco"
+              value={postura.diskUsedPct === undefined ? '—' : `${postura.diskUsedPct}%`}
+            />
+            <PostureItem
+              label="Encendido hace"
+              value={postura.uptimeDays === undefined ? '—' : `${postura.uptimeDays} dias`}
+            />
+          </dl>
         </CardContent>
       </Card>
 
@@ -298,6 +352,15 @@ export function EndpointInventory({
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function PostureItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-1.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium tabular-nums">{value}</dd>
     </div>
   )
 }

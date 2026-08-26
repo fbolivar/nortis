@@ -609,6 +609,7 @@ export type Database = {
           policy_applied_at: string | null
           public_ip: string | null
           public_ip_at: string | null
+          tags: string[]
           site_id: string | null
           status: Database['public']['Enums']['endpoint_status']
           updated_at: string
@@ -1017,6 +1018,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_endpoint_tags: {
+        Args: { p_endpoint_id: string; p_tags: string[] }
+        Returns: undefined
+      }
       agent_report_inventory: {
         Args: { p_credential: string; p_hardware: Json; p_software: Json; p_ip?: string | null }
         Returns: undefined
@@ -1175,7 +1180,7 @@ export type ActivityEvent = Tables<'activity_events'>
 export const ENDPOINT_COLUMNS =
   'id, organization_id, hostname, machine_fingerprint, os_version, agent_version, ' +
   'last_logged_user, status, last_seen_at, assigned_profile_id, policy_applied_at, ' +
-  'enrolled_at, created_at, updated_at, enrolled_with_api_key_id, agent_credential_issued_at'
+  'enrolled_at, created_at, updated_at, enrolled_with_api_key_id, agent_credential_issued_at, tags'
 export type DlpIncident = Tables<'dlp_incidents'>
 export type EncryptedDocument = Tables<'encrypted_documents'>
 export type AuditLogEntry = Tables<'audit_log'>
