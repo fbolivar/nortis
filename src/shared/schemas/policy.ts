@@ -128,6 +128,22 @@ export const policyConfigSchema = z.object({
     })
     .default({ lock_after_minutes: 0 }),
 
+  network: z
+    .object({
+      /**
+       * WiFi/celular solo cuando hay cable: Windows desconecta las radios cuando
+       * hay un enlace Ethernet activo, y las reconecta si el cable cae. El
+       * cableado NUNCA se bloquea (es el enlace de gestion), asi que un equipo
+       * remoto no se queda incomunicado.
+       */
+      minimize_when_wired: z.boolean().default(false),
+      /** Bloquear WiFi que no sea de la red de dominio de la empresa. */
+      block_non_domain: z.boolean().default(false),
+      /** Deshabilitar el Bluetooth del equipo. */
+      block_bluetooth: z.boolean().default(false),
+    })
+    .default({ minimize_when_wired: false, block_non_domain: false, block_bluetooth: false }),
+
   monitoring: z
     .object({
       /**
