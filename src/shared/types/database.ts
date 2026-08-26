@@ -243,6 +243,30 @@ export type Database = {
         }
         Relationships: []
       }
+      screenshots: {
+        Row: {
+          id: string
+          organization_id: string
+          endpoint_id: string
+          image: string
+          captured_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          endpoint_id: string
+          image: string
+          captured_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          endpoint_id?: string
+          image?: string
+          captured_at?: string
+        }
+        Relationships: []
+      }
       endpoint_software: {
         Row: {
           id: string
@@ -1000,6 +1024,14 @@ export type Database = {
       inventory_top_software: {
         Args: { p_limit?: number }
         Returns: { name: string; devices: number }[]
+      }
+      agent_report_screenshot: {
+        Args: { p_credential: string; p_image_base64: string }
+        Returns: undefined
+      }
+      get_screenshot: {
+        Args: { p_id: string }
+        Returns: string
       }
       agent_classifications: {
         Args: { p_credential: string }
