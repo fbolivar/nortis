@@ -98,15 +98,22 @@ function fileOpsByClassification(
   rows: { payload: unknown }[],
   classifications: Classification[],
 ): { name: string; color: string; count: number }[] {
+  const byName = new Map(classifications.map((c) => [c.name, c.color]))
   const m = new Map<string, { color: string; count: number }>()
   for (const r of rows) {
     const p = r.payload
-    const path =
-      p && typeof p === 'object' && !Array.isArray(p)
-        ? (p as Record<string, unknown>).path
+    const obj = p && typeof p === 'object' && !Array.isArray(p) ? (p as Record<string, unknown>) : null
+    if (!obj) continue
+    // El agente etiqueta por CONTENIDO (Fase B); esa etiqueta manda. Si no viene,
+    // se clasifica por la ruta (Fase A).
+    const tagged = typeof obj.classification === 'string' ? obj.classification : null
+    const path = typeof obj.path === 'string' ? obj.path : null
+    const c = tagged
+      ? { name: tagged, color: byName.get(tagged) ?? '#94a3b8' }
+      : path
+        ? classifyPath(path, classifications)
         : null
-    if (typeof path !== 'string' || !path) continue
-    const c = classifyPath(path, classifications)
+    if (!c) continue
     const cur = m.get(c.name)
     if (cur) cur.count += 1
     else m.set(c.name, { color: c.color, count: 1 })

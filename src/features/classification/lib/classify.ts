@@ -13,6 +13,8 @@ export type Classification = {
   color: string
   extensions: string[]
   path_keywords: string[]
+  /** Patrones de CONTENIDO (regex) que el agente evalua localmente (Fase B). */
+  content_patterns: string[]
   sort_order: number
 }
 
