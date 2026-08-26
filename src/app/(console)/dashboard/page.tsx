@@ -1,9 +1,7 @@
 import Link from 'next/link'
-import { MonitorSmartphone, ShieldAlert, ShieldOff, Wifi } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionContext } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
-import { StatTile } from '@/shared/components/stat-tile'
 import { Button, Callout } from '@/shared/components/ui'
 import { offlineCutoffISO } from '@/lib/utils'
 import {
@@ -17,39 +15,15 @@ import {
   type SpotlightIncident,
 } from '@/features/incidents/components/incident-spotlight'
 import { ConnectedDevices } from '@/features/telemetry/components/connected-devices'
+import { ProtectionCard, type ProtectionItem } from '@/features/dashboard/components/protection-card'
+
+/** Titulo de seccion del panel. */
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-lg font-semibold tracking-tight text-foreground">{children}</h2>
+}
 
 /** Un equipo sin señal en 15 minutos se considera fuera de linea. */
 const OFFLINE_THRESHOLD_MIN = 15
-
-const TREND_DAYS = 14
-
-/**
- * Incidentes por dia para la mini-grafica de la tarjeta.
- *
- * Los huecos se rellenan con cero en vez de omitirse: una serie que solo dibuja
- * los dias con incidentes comprime el eje temporal y convierte una racha tranquila
- * en una linea que parece constante. Y no se reutiliza la serie de actividad
- * general para esta tarjeta: una linea que no corresponde al numero que tiene
- * encima es peor que no dibujar nada.
- */
-function incidentsPerDay(rows: { detected_at: string }[] | null, days = TREND_DAYS): number[] {
-  if (!rows?.length) return []
-
-  const buckets = new Map<string, number>()
-  const today = new Date()
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const day = new Date(today)
-    day.setDate(today.getDate() - i)
-    buckets.set(day.toISOString().slice(0, 10), 0)
-  }
-
-  for (const row of rows) {
-    const key = row.detected_at.slice(0, 10)
-    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1)
-  }
-
-  return [...buckets.values()]
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -60,10 +34,10 @@ export default async function DashboardPage() {
   const [
     endpoints,
     online,
-    openIncidents,
+    severeOpen,
     unassigned,
+    currentRelease,
     recent,
-    incidentTrend,
     byDay,
     byHour,
     byCategory,
@@ -80,14 +54,18 @@ export default async function DashboardPage() {
       .from('endpoints')
       .select('id', { count: 'exact', head: true })
       .gte('last_seen_at', staleSince),
+    // Severos = alta/critica y abiertos: son los que llevan a la primera accion.
     supabase
       .from('dlp_incidents')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'open'),
+      .eq('status', 'open')
+      .in('severity', ['high', 'critical']),
     supabase
       .from('endpoints')
       .select('id', { count: 'exact', head: true })
       .is('assigned_profile_id', null),
+    // Version vigente del agente, para contar equipos desactualizados.
+    supabase.rpc('current_agent_release'),
     // Sin filtro de estado: el panel maestro-detalle tiene su propia pestaña de
     // "Abiertos", y filtrar en la consulta dejaria esa pestaña sin alternativa.
     supabase
@@ -97,13 +75,6 @@ export default async function DashboardPage() {
       )
       .order('detected_at', { ascending: false })
       .limit(12),
-    // Solo la marca de tiempo: el conteo por dia se hace sobre 14 dias de
-    // incidentes, que es un volumen de filas pequeño incluso en un tenant activo.
-    supabase
-      .from('dlp_incidents')
-      .select('detected_at')
-      .gte('detected_at', offlineCutoffISO(TREND_DAYS * 24 * 60))
-      .limit(5000),
     // Las agregaciones corren en Postgres (SECURITY INVOKER, asi que RLS acota
     // por organizacion). Traer los eventos crudos para contarlos en Node
     // funcionaria con datos de demo y se caeria con un cliente real.
@@ -118,12 +89,62 @@ export default async function DashboardPage() {
 
   const totalEndpoints = endpoints.count ?? 0
   const onlineCount = online.count ?? 0
-  const incidentCount = openIncidents.count ?? 0
+  const offlineCount = Math.max(0, totalEndpoints - onlineCount)
+  const severeCount = severeOpen.count ?? 0
   const unassignedCount = unassigned.count ?? 0
   const recentIncidents = (recent.data ?? []) as unknown as SpotlightIncident[]
-  const incidentSeries = incidentsPerDay(incidentTrend.data)
+
+  const currentVersion = currentRelease.data?.[0]?.version ?? null
+
+  // Equipos con el agente por debajo de la version vigente. Se cuenta aparte
+  // porque necesita la version, que sale de otra consulta.
+  let outdatedCount = 0
+  if (currentVersion) {
+    const { count } = await supabase
+      .from('endpoints')
+      .select('id', { count: 'exact', head: true })
+      .not('agent_version', 'is', null)
+      .neq('agent_version', currentVersion)
+    outdatedCount = count ?? 0
+  }
 
   const consentSigned = Boolean(session?.organization?.monitoring_consent_signed_at)
+
+  // Acciones de la tarjeta "Fortalece tu proteccion", en orden de urgencia.
+  const protectionItems: ProtectionItem[] = [
+    {
+      before: 'Tiene',
+      count: severeCount,
+      after: 'incidente(s) severo(s) abierto(s) que requieren revision.',
+      href: '/incidents',
+      action: 'Investigar',
+      tone: 'critical',
+    },
+    {
+      before: '',
+      count: unassignedCount,
+      after: `de ${totalEndpoints} equipos no tienen politica de DLP asignada.`,
+      href: '/endpoints',
+      action: 'Asignar politica',
+      tone: 'warning',
+    },
+    {
+      before: '',
+      count: offlineCount,
+      after: `de ${totalEndpoints} equipos estan fuera de linea y pueden no aplicar las politicas.`,
+      href: '/endpoints',
+      action: 'Revisar equipos',
+      tone: 'warning',
+    },
+    {
+      before: '',
+      count: outdatedCount,
+      after: `de ${totalEndpoints} equipos tienen el agente desactualizado.`,
+      href: '/updates',
+      action: 'Actualizar agentes',
+      tone: 'warning',
+    },
+  ]
 
   return (
     <>
@@ -139,77 +160,10 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="page-body space-y-4">
-        {/*
-          Dos columnas ya en telefono. Con la tarjeta compacta, una metrica por
-          fila dejaba el resumen ocupando pantalla y media antes de llegar a los
-          incidentes, que es lo que se viene a mirar.
-        */}
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile
-            label="Equipos con agente"
-            value={totalEndpoints}
-            icon={MonitorSmartphone}
-            hint={totalEndpoints === 0 ? 'Ninguno desplegado aun' : 'Inventario total'}
-          />
-          <StatTile
-            delay={60}
-            label="En linea"
-            value={totalEndpoints === 0 ? '—' : `${onlineCount}/${totalEndpoints}`}
-            icon={Wifi}
-            hint={`Sin señal en ${OFFLINE_THRESHOLD_MIN} min = fuera de linea`}
-            tone={totalEndpoints > 0 && onlineCount === 0 ? 'warning' : 'neutral'}
-            delta={
-              totalEndpoints > 0
-                ? {
-                    value: `${Math.round((onlineCount / totalEndpoints) * 100)}% del parque`,
-                    direction: onlineCount === totalEndpoints ? 'flat' : 'down',
-                    intent: onlineCount === totalEndpoints ? 'good' : 'neutral',
-                  }
-                : undefined
-            }
-          />
-          <StatTile
-            delay={120}
-            label="Incidentes abiertos"
-            value={incidentCount}
-            icon={ShieldAlert}
-            hint={incidentCount === 0 ? 'Nada pendiente de revisar' : 'Requieren revision'}
-            tone={incidentCount > 0 ? 'critical' : 'success'}
-            visual={
-              incidentSeries.length
-                ? {
-                    data: incidentSeries,
-                    kind: 'bars',
-                    label: `Incidentes detectados por dia, ultimos ${TREND_DAYS} dias`,
-                  }
-                : undefined
-            }
-          />
-          <StatTile
-            delay={180}
-            label="Equipos sin politica"
-            value={unassignedCount}
-            icon={ShieldOff}
-            hint={
-              unassignedCount > 0
-                ? 'No tienen reglas de DLP aplicadas'
-                : totalEndpoints === 0
-                  ? '—'
-                  : 'Cobertura completa'
-            }
-            tone={unassignedCount > 0 ? 'warning' : 'success'}
-            delta={
-              totalEndpoints > 0
-                ? {
-                    value: `${totalEndpoints - unassignedCount} de ${totalEndpoints} cubiertos`,
-                    direction: unassignedCount === 0 ? 'up' : 'down',
-                    intent: unassignedCount === 0 ? 'good' : 'bad',
-                  }
-                : undefined
-            }
-          />
-        </section>
+      <div className="page-body space-y-6">
+        {/* Fortalece tu proteccion: lo primero que se ve es lo primero que hay
+            que hacer. */}
+        <ProtectionCard items={protectionItems} />
 
         {!consentSigned ? (
           <Callout tone="warning" title="Sin autorizacion de tratamiento de datos">
@@ -223,73 +177,76 @@ export default async function DashboardPage() {
           </Callout>
         ) : null}
 
-        <IncidentSpotlight
-          incidents={recentIncidents}
-          emptyTitle={
-            totalEndpoints === 0 ? 'Aun no hay agentes reportando' : 'Sin incidentes registrados'
-          }
-          emptyDescription={
-            totalEndpoints === 0
-              ? 'Genere una credencial de agente e instale el paquete en el primer equipo para empezar a recibir telemetria.'
-              : 'Ninguna politica de DLP se ha violado. Los incidentes aparecen aqui en cuanto un agente los detecta.'
-          }
-          emptyAction={
-            totalEndpoints === 0 ? (
-              <Link href="/settings/api-keys">
-                <Button size="sm">Generar credencial de agente</Button>
-              </Link>
-            ) : undefined
-          }
-        />
-
-        {/*
-          `items-start`: sin el, la rejilla estira cada tarjeta hasta la altura
-          de la mas alta de su fila, y el donut —que ocupa la mitad— queda con un
-          hueco blanco enorme debajo que se lee como contenido que falta.
-        */}
-        {/*
-          Dos rejillas y no una de cinco huecos: 5 tarjetas en 2 o en 3 columnas
-          dejan SIEMPRE un hueco al final de la ultima fila, y ese vacio al pie
-          del panel se lee como una tarjeta que no cargo.
-
-          El reparto ademas no es arbitrario. Las series temporales necesitan
-          ancho —una linea de 14 puntos en un tercio de pantalla convierte las
-          variaciones reales en dientes de sierra—, mientras que el donut y los
-          dos rankings son listas cortas que se leen igual de bien en un tercio.
-        */}
-        <section className="grid items-start gap-3 lg:grid-cols-2">
-          <ActivityByDayChart data={byDay.data ?? []} />
-          <ActivityByHourChart data={byHour.data ?? []} delay={60} />
-        </section>
-
-        <section className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <CategoryDonutChart data={byCategory.data ?? []} delay={120} />
-          <RankingChart
-            title="Aplicaciones mas usadas"
-            description="Ultimos 7 dias"
-            data={topApps.data ?? []}
-            nameKey="app"
-            unit="eventos"
-            emptyTitle="Sin uso de aplicaciones registrado"
-            emptyDescription="El agente reporta apertura y foco de ventana de cada proceso."
-            delay={180}
-          />
-          <RankingChart
-            title="Sitios mas visitados"
-            description="Ultimos 7 dias"
-            data={topDomains.data ?? []}
-            nameKey="domain"
-            unit="visitas"
-            emptyTitle="Sin navegacion registrada"
-            emptyDescription="Se registra el dominio, nunca la URL completa: la ruta y la query llevan identificadores y tokens."
-            delay={240}
+        {/* ------------------------------------------------------ Incidentes --- */}
+        <section className="space-y-3">
+          <SectionTitle>Incidentes</SectionTitle>
+          <IncidentSpotlight
+            incidents={recentIncidents}
+            emptyTitle={
+              totalEndpoints === 0 ? 'Aun no hay agentes reportando' : 'Sin incidentes registrados'
+            }
+            emptyDescription={
+              totalEndpoints === 0
+                ? 'Genere una credencial de agente e instale el paquete en el primer equipo para empezar a recibir telemetria.'
+                : 'Ninguna politica de DLP se ha violado. Los incidentes aparecen aqui en cuanto un agente los detecta.'
+            }
+            emptyAction={
+              totalEndpoints === 0 ? (
+                <Link href="/settings/api-keys">
+                  <Button size="sm">Generar credencial de agente</Button>
+                </Link>
+              ) : undefined
+            }
           />
         </section>
 
-        <section>
+        {/* ------------------------------------------------------------ Datos --- */}
+        {/*
+          Que sale, por donde y a que dispositivos externos. El reparto no es
+          arbitrario: el donut y los dos rankings son listas cortas que se leen
+          bien en un tercio, y los dispositivos externos son otra via de salida.
+        */}
+        <section className="space-y-3">
+          <SectionTitle>Datos</SectionTitle>
+          <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <CategoryDonutChart data={byCategory.data ?? []} delay={120} />
+            <RankingChart
+              title="Aplicaciones mas usadas"
+              description="Ultimos 7 dias"
+              data={topApps.data ?? []}
+              nameKey="app"
+              unit="eventos"
+              emptyTitle="Sin uso de aplicaciones registrado"
+              emptyDescription="El agente reporta apertura y foco de ventana de cada proceso."
+              delay={180}
+            />
+            <RankingChart
+              title="Sitios mas visitados"
+              description="Ultimos 7 dias"
+              data={topDomains.data ?? []}
+              nameKey="domain"
+              unit="visitas"
+              emptyTitle="Sin navegacion registrada"
+              emptyDescription="Se registra el dominio, nunca la URL completa: la ruta y la query llevan identificadores y tokens."
+              delay={240}
+            />
+          </div>
           <ConnectedDevices rows={connectedUsb.data ?? []} />
         </section>
 
+        {/* --------------------------------------------------- Comportamiento --- */}
+        {/*
+          Patrones de uso en el tiempo. Las series necesitan ancho: una linea de
+          14 puntos en un tercio de pantalla convierte variaciones reales en
+          dientes de sierra.
+        */}
+        <section className="space-y-3">
+          <SectionTitle>Comportamiento</SectionTitle>
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            <ActivityByDayChart data={byDay.data ?? []} />
+            <ActivityByHourChart data={byHour.data ?? []} delay={60} />
+          </div>
+        </section>
       </div>
     </>
   )
