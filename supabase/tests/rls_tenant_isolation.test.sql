@@ -142,8 +142,8 @@ select is(
 );
 
 select is(
-  (select count(*) from public.users)::int, 2,
-  'users: se ven los miembros de la propia organizacion y ninguno mas'
+  (select count(*) from public.users)::int, 3,
+  'users: se ven los miembros de la propia organizacion (owner, viewer y delegado) y ninguno mas'
 );
 
 -- =============================================================================
