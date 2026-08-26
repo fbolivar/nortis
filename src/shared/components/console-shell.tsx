@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Rocket,
   Search,
+  Tags,
   Settings,
   LogOut,
   X,
@@ -47,6 +48,7 @@ const NAV_GROUPS = [
     title: 'Responder',
     items: [
       { href: '/policies', label: 'Politicas', icon: SlidersHorizontal },
+      { href: '/classification', label: 'Clasificacion', icon: Tags },
       { href: '/vault', label: 'Cifrado', icon: Lock },
       { href: '/tasks', label: 'Despliegue', icon: Rocket },
     ],

@@ -111,6 +111,39 @@ export type Database = {
         }
         Relationships: []
       }
+      data_classifications: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          color: string
+          extensions: string[]
+          path_keywords: string[]
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          color?: string
+          extensions?: string[]
+          path_keywords?: string[]
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          color?: string
+          extensions?: string[]
+          path_keywords?: string[]
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       sites: {
         Row: {
           id: string
