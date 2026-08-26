@@ -25,8 +25,14 @@ import {
 } from '@/features/telemetry/components/endpoint-status'
 import { getSessionContext } from '@/features/auth/services/session'
 import { AgentInstallerButton } from '@/features/tenant/components/agent-installer-button'
+import { readPosture, healthFlags } from '@/features/inventory/lib/posture'
 
-export default async function EndpointsPage() {
+export default async function EndpointsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>
+}) {
+  const { tag } = await searchParams
   const supabase = await createClient()
   const session = await getSessionContext()
   const canManage = session?.role === 'owner' || session?.role === 'admin'
@@ -61,18 +67,18 @@ export default async function EndpointsPage() {
     (e) => e.agent_version && e.agent_version !== latestAgentVersion(endpoints)
   ).length
 
-  // Cumplimiento de cifrado: el agente reporta disk_encrypted en el hardware.
-  // Solo se cuentan como "sin cifrar" los que lo reportaron en false; los que aun
-  // no tienen dato no se penalizan (podrian no haber hecho el primer barrido).
-  const diskEncrypted = (e: (typeof endpoints)[number]): boolean | undefined => {
-    const hw = e.hardware_info
-    if (hw && typeof hw === 'object' && !Array.isArray(hw)) {
-      const v = (hw as Record<string, unknown>).disk_encrypted
-      if (typeof v === 'boolean') return v
-    }
-    return undefined
-  }
-  const unencrypted = endpoints.filter((e) => diskEncrypted(e) === false).length
+  // Etiquetas: catalogo para el filtro y filtrado por la etiqueta activa.
+  const allTags = [...new Set(endpoints.flatMap((e) => e.tags ?? []))].sort()
+  const activeTag = tag && allTags.includes(tag) ? tag : undefined
+  const shownEndpoints = activeTag
+    ? endpoints.filter((e) => (e.tags ?? []).includes(activeTag))
+    : endpoints
+
+  // Postura/salud por equipo (del hardware reportado). Se cuenta como "con
+  // alertas" el que tenga al menos un problema critico.
+  const conAlertas = endpoints.filter(
+    (e) => healthFlags(readPosture(e.hardware_info)).some((f) => f.tone === 'critical')
+  ).length
 
   return (
     <>
@@ -115,14 +121,43 @@ export default async function EndpointsPage() {
           />
         </section>
 
-        {unencrypted > 0 ? (
+        {conAlertas > 0 ? (
           <Callout
             tone="critical"
-            title={`${unencrypted} ${unencrypted === 1 ? 'equipo sin cifrar' : 'equipos sin cifrar'}`}
+            title={`${conAlertas} ${conAlertas === 1 ? 'equipo con alertas de seguridad' : 'equipos con alertas de seguridad'}`}
           >
-            El disco del sistema no tiene BitLocker activo. Un equipo sin cifrar expone toda su
-            informacion si se pierde o lo roban — un riesgo directo de cumplimiento (Ley 1581).
+            Disco sin cifrar, antivirus o cortafuegos desactivados. Son riesgos directos de
+            cumplimiento (Ley 1581); revisa la columna Salud y el detalle de cada equipo.
           </Callout>
+        ) : null}
+
+        {allTags.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">Filtrar por etiqueta:</span>
+            <Link
+              href="/endpoints"
+              className={
+                'rounded-full px-3 py-1 text-xs transition-colors ' +
+                (activeTag ? 'bg-muted text-muted-foreground hover:bg-muted/70' : 'bg-primary text-primary-foreground')
+              }
+            >
+              Todos
+            </Link>
+            {allTags.map((t) => (
+              <Link
+                key={t}
+                href={`/endpoints?tag=${encodeURIComponent(t)}`}
+                className={
+                  'rounded-full px-3 py-1 text-xs transition-colors ' +
+                  (activeTag === t
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/70')
+                }
+              >
+                {t}
+              </Link>
+            ))}
+          </div>
         ) : null}
 
         {unassigned > 0 || outdated > 0 ? (
@@ -171,13 +206,17 @@ export default async function EndpointsPage() {
                     <Th>Estado</Th>
                     <Th>Ultimo usuario</Th>
                     <Th>Perfil</Th>
+                    <Th>Salud</Th>
                     <Th>Agente</Th>
                     <Th>Ultima señal</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {endpoints.map((endpoint, index) => {
+                  {shownEndpoints.map((endpoint) => {
                     const profile = endpoint.security_profiles as { name: string } | null
+                    const status = resolveLiveStatus(endpoint, clock)
+                    const problemas = healthFlags(readPosture(endpoint.hardware_info))
+                    const criticos = problemas.filter((f) => f.tone === 'critical').length
                     return (
                       <tr key={endpoint.id} className="hover:bg-surface-muted">
                         <Td>
@@ -190,9 +229,21 @@ export default async function EndpointsPage() {
                           <span className="block text-xs text-muted-foreground">
                             {endpoint.os_version ?? 'Sistema desconocido'}
                           </span>
+                          {(endpoint.tags ?? []).length > 0 ? (
+                            <span className="mt-1 flex flex-wrap gap-1">
+                              {(endpoint.tags ?? []).map((t) => (
+                                <span
+                                  key={t}
+                                  className="rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground"
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
                         </Td>
                         <Td>
-                          <EndpointStatusBadge status={statuses[index]} />
+                          <EndpointStatusBadge status={status} />
                         </Td>
                         <Td className="text-muted-foreground">
                           {endpoint.last_logged_user ?? '—'}
@@ -202,6 +253,15 @@ export default async function EndpointsPage() {
                             <span className="text-muted-foreground">{profile.name}</span>
                           ) : (
                             <Badge tone="warning">Sin perfil</Badge>
+                          )}
+                        </Td>
+                        <Td>
+                          {problemas.length === 0 ? (
+                            <Badge tone="success">OK</Badge>
+                          ) : (
+                            <Badge tone={criticos > 0 ? 'critical' : 'warning'} title={problemas.map((p) => p.label).join(', ')}>
+                              {problemas.length} {problemas.length === 1 ? 'alerta' : 'alertas'}
+                            </Badge>
                           )}
                         </Td>
                         <Td className="forensic">{endpoint.agent_version ?? '—'}</Td>

@@ -24,6 +24,7 @@ import { EventTypeBadge, describeEvent } from '@/features/telemetry/components/e
 import { EventTypeFilter } from '@/features/telemetry/components/event-type-filter'
 import { EndpointInventory } from '@/features/inventory/components/endpoint-inventory'
 import { RemoteActions } from '@/features/tasks/components/remote-actions'
+import { EndpointTags } from '@/features/inventory/components/endpoint-tags'
 import { getSessionContext } from '@/features/auth/services/session'
 import { EVENT_TYPE_LABEL, type TelemetryEventType } from '@/shared/schemas/telemetry'
 import { ENDPOINT_COLUMNS, type EventType } from '@/shared/types/database'
@@ -203,6 +204,8 @@ export default async function EndpointDetailPage({
             </CardContent>
           </Card>
         ) : null}
+
+        <EndpointTags endpointId={endpoint.id} initial={endpoint.tags ?? []} canEdit={canManage} />
 
         {canManage ? (
           <RemoteActions

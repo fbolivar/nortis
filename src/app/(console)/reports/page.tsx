@@ -114,6 +114,12 @@ export default async function ReportsPage({
           >
             Aplicar
           </button>
+          <a
+            href="/reports/usage"
+            className="ml-auto self-center text-xs text-primary underline-offset-2 hover:underline print:hidden"
+          >
+            Reporte de tiempo de uso →
+          </a>
         </form>
 
         {error ? (
