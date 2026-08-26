@@ -431,6 +431,67 @@ export function PolicyEditor({
         </CardContent>
       </Card>
 
+      {/* --------------------------------------------------------------- Redes */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bloqueo de redes</CardTitle>
+          <CardDescription>
+            El cableado nunca se bloquea (es el enlace de administracion). WiFi y datos
+            moviles se restringen solo cuando hay cable activo: si el cable cae, Windows
+            los reconecta.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.network.minimize_when_wired}
+              onChange={(e) => patch('network', { minimize_when_wired: e.target.checked })}
+              disabled={!canEdit}
+              className="mt-1"
+            />
+            <span>
+              Desconectar WiFi y datos moviles cuando hay cable
+              <span className="block text-xs text-muted-foreground">
+                Solo con enlace Ethernet activo. No deja el equipo incomunicado.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.network.block_non_domain}
+              onChange={(e) => patch('network', { block_non_domain: e.target.checked })}
+              disabled={!canEdit}
+              className="mt-1"
+            />
+            <span>
+              Bloquear WiFi fuera del dominio de la empresa
+              <span className="block text-xs text-muted-foreground">
+                Impide conectarse a redes inalambricas ajenas a la red corporativa.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.network.block_bluetooth}
+              onChange={(e) => patch('network', { block_bluetooth: e.target.checked })}
+              disabled={!canEdit}
+              className="mt-1"
+            />
+            <span>
+              Deshabilitar Bluetooth
+              <span className="block text-xs text-muted-foreground">
+                Apaga el servicio de Bluetooth del equipo. Se restaura al retirar el control.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+
       {/* ------------------------------------------------------------- Cifrado */}
       <Card>
         <CardHeader>
