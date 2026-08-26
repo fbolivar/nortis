@@ -14,10 +14,13 @@ export default async function NewPolicyPage() {
   // no mostrarlo.
   if (session?.role !== 'owner' && session?.role !== 'admin') redirect('/policies')
 
-  const { data: endpoints } = await supabase
-    .from('endpoints')
-    .select('id, hostname, assigned_profile_id')
-    .order('hostname')
+  const [{ data: endpoints }, { data: classes }] = await Promise.all([
+    supabase.from('endpoints').select('id, hostname, assigned_profile_id').order('hostname'),
+    supabase
+      .from('data_classifications')
+      .select('name, sensitive')
+      .order('sort_order', { ascending: true }),
+  ])
 
   return (
     <>
@@ -32,6 +35,7 @@ export default async function NewPolicyPage() {
           endpoints={endpoints ?? []}
           consentSigned={Boolean(session.organization?.monitoring_consent_signed_at)}
           canEdit
+          classes={classes ?? []}
         />
       </div>
     </>
