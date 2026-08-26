@@ -1,7 +1,17 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Cpu, HardDrive, MemoryStick, Server, ShieldCheck, ShieldOff, ShieldQuestion } from 'lucide-react'
+import {
+  Cpu,
+  HardDrive,
+  MapPin,
+  MemoryStick,
+  Server,
+  ShieldCheck,
+  ShieldOff,
+  ShieldQuestion,
+  Wifi,
+} from 'lucide-react'
 import {
   Badge,
   Card,
@@ -33,14 +43,22 @@ function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null
 }
 
+interface NetInterface {
+  name?: string
+  ip?: string
+  mac?: string
+}
+
 export function EndpointInventory({
   hardware,
   inventoryAt,
   software,
+  publicIp,
 }: {
   hardware: Json | null
   inventoryAt: string | null
   software: SoftwareRow[]
+  publicIp?: string | null
 }) {
   const [query, setQuery] = useState('')
 
@@ -61,6 +79,13 @@ export function EndpointInventory({
 
   const encrypted =
     typeof hw['disk_encrypted'] === 'boolean' ? (hw['disk_encrypted'] as boolean) : undefined
+
+  const net = (hw['network'] && typeof hw['network'] === 'object' && !Array.isArray(hw['network'])
+    ? (hw['network'] as Record<string, unknown>)
+    : {}) as Record<string, unknown>
+  const interfaces = (Array.isArray(net['interfaces']) ? net['interfaces'] : []) as NetInterface[]
+  const wifiSsid = str(net['wifi_ssid'])
+  const hasNetwork = interfaces.length > 0 || Boolean(wifiSsid) || Boolean(publicIp)
 
   const diskTotal = hw['disk_total_bytes']
   const diskFree = hw['disk_free_bytes']
@@ -134,6 +159,61 @@ export function EndpointInventory({
           </div>
         </CardContent>
       </Card>
+
+      {hasNetwork ? (
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+            <CardTitle>Red</CardTitle>
+            {wifiSsid ? (
+              <Badge tone="info">
+                <Wifi className="mr-1 h-3.5 w-3.5" aria-hidden />
+                {wifiSsid}
+              </Badge>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {publicIp ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-muted px-4 py-3">
+                <span className="text-xs text-muted-foreground">IP publica</span>
+                <span className="font-mono text-sm">{publicIp}</span>
+                {/* Geolocalizacion por IP: se abre un servicio externo en otra
+                    pestaña. No se llama desde el servidor para no depender de un
+                    tercero ni filtrar la IP sin que el usuario lo decida. */}
+                <a
+                  href={`https://ipinfo.io/${encodeURIComponent(publicIp)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto inline-flex items-center gap-1 text-xs text-primary underline-offset-2 hover:underline"
+                >
+                  <MapPin className="h-3.5 w-3.5" aria-hidden />
+                  Ubicar
+                </a>
+              </div>
+            ) : null}
+
+            {interfaces.length > 0 ? (
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Interfaz</Th>
+                    <Th>IP local</Th>
+                    <Th>MAC</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {interfaces.map((n, i) => (
+                    <tr key={`${n.mac ?? ''}-${i}`} className="hover:bg-surface-muted">
+                      <Td className="font-medium">{n.name ?? '—'}</Td>
+                      <Td className="font-mono tabular-nums">{n.ip ?? '—'}</Td>
+                      <Td className="font-mono text-muted-foreground">{n.mac ?? '—'}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
