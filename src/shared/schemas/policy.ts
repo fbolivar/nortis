@@ -77,6 +77,13 @@ export const processExe = z
   .toLowerCase()
   .regex(/^[a-z0-9 ._-]+\.exe$/, 'Nombre de ejecutable, ej: anydesk.exe')
 
+/**
+ * Identificador de app para las listas de control: un ejecutable (.exe), un
+ * SHA-256 (64 hex) o el nombre del editor firmante. El agente casa por
+ * cualquiera de los tres, sin distinguir mayusculas.
+ */
+export const appIdentifier = z.string().trim().min(1).max(200)
+
 const appsMode = z.enum(['allow', 'alert', 'block', 'allowlist'])
 
 export const policyConfigSchema = z.object({
@@ -176,14 +183,23 @@ export const policyConfigSchema = z.object({
   apps: z
     .object({
       mode: appsMode.default('allow'),
-      blocklist: z.array(processExe).default([]),
+      blocklist: z.array(appIdentifier).default([]),
       // Lista blanca de ejecutables permitidos (modo 'allowlist'). El resto se
       // alerta y, si allowlist_enforce esta activo, se cierra al abrirse. El
       // agente nunca cierra procesos de sistema ni el escritorio (explorer.exe).
-      allowlist: z.array(processExe).default([]),
+      allowlist: z.array(appIdentifier).default([]),
       allowlist_enforce: z.boolean().default(false),
+      // Trata como no autorizada cualquier app sin firma valida (aplica el modo
+      // vigente). Las entradas de listas pueden ser .exe, un SHA-256 o un editor.
+      block_unsigned: z.boolean().default(false),
     })
-    .default({ mode: 'allow', blocklist: [], allowlist: [], allowlist_enforce: false }),
+    .default({
+      mode: 'allow',
+      blocklist: [],
+      allowlist: [],
+      allowlist_enforce: false,
+      block_unsigned: false,
+    }),
 
   /**
    * Clases de datos VIGILADAS. Cuando un archivo que el agente etiquete con una

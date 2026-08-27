@@ -35,7 +35,7 @@ import {
   extension,
   folderPath,
   processName,
-  processExe,
+  appIdentifier,
   usbSerial,
   type PolicyConfig,
 } from '@/shared/schemas/policy'
@@ -63,7 +63,7 @@ const validateExtension = makeValidator(extension)
 const validateDomain = makeValidator(domain)
 const validateSerial = makeValidator(usbSerial)
 const validateProcess = makeValidator(processName)
-const validateProcessExe = makeValidator(processExe)
+const validateAppIdentifier = makeValidator(appIdentifier)
 
 /** Selector de modo como grupo de opciones con su consecuencia escrita al lado. */
 function ModeSelector<T extends string>({
@@ -414,11 +414,11 @@ export function PolicyEditor({
           {config.apps.mode === 'alert' || config.apps.mode === 'block' ? (
             <StringListInput
               label="Aplicaciones bloqueadas"
-              help="Nombre del ejecutable con .exe. Ej: anydesk.exe, utorrent.exe, teamviewer.exe."
+              help="Por ejecutable (anydesk.exe), por huella SHA-256, o por editor firmante (ej: TeamViewer Germany GmbH)."
               placeholder="anydesk.exe"
               values={config.apps.blocklist}
               onChange={(blocklist) => patch('apps', { blocklist })}
-              validate={validateProcessExe}
+              validate={validateAppIdentifier}
               disabled={!canEdit}
             />
           ) : null}
@@ -426,11 +426,11 @@ export function PolicyEditor({
             <>
               <StringListInput
                 label="Aplicaciones permitidas"
-                help="Solo estos ejecutables podran usarse. Incluye lo esencial del trabajo (navegador, ofimatica, etc.)."
+                help="Solo esto podra usarse: por .exe, huella SHA-256 o editor firmante. Incluye lo esencial del trabajo (navegador, ofimatica, etc.)."
                 placeholder="chrome.exe"
                 values={config.apps.allowlist}
                 onChange={(allowlist) => patch('apps', { allowlist })}
-                validate={validateProcessExe}
+                validate={validateAppIdentifier}
                 disabled={!canEdit}
               />
               <label className="flex items-start gap-2 text-sm">
@@ -450,6 +450,25 @@ export function PolicyEditor({
                 </span>
               </label>
             </>
+          ) : null}
+          {config.apps.mode !== 'allow' ? (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={config.apps.block_unsigned}
+                onChange={(e) => patch('apps', { block_unsigned: e.target.checked })}
+                disabled={!canEdit}
+                className="mt-1"
+              />
+              <span>
+                Tratar como no autorizada cualquier app sin firma valida
+                <span className="block text-xs text-muted-foreground">
+                  El malware suele ir sin firmar. Aplica el modo elegido (alerta o cierre) a los
+                  programas sin firma Authenticode. Nunca afecta al escritorio ni a procesos del
+                  sistema.
+                </span>
+              </span>
+            </label>
           ) : null}
         </CardContent>
       </Card>
