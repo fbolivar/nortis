@@ -25,7 +25,7 @@ import { EventTypeFilter } from '@/features/telemetry/components/event-type-filt
 import { EndpointInventory } from '@/features/inventory/components/endpoint-inventory'
 import { RemoteActions } from '@/features/tasks/components/remote-actions'
 import { EndpointTags } from '@/features/inventory/components/endpoint-tags'
-import { getSessionContext } from '@/features/auth/services/session'
+import { getSessionContext, can } from '@/features/auth/services/session'
 import { EVENT_TYPE_LABEL, type TelemetryEventType } from '@/shared/schemas/telemetry'
 import { ENDPOINT_COLUMNS, type EventType } from '@/shared/types/database'
 
@@ -43,6 +43,8 @@ export default async function EndpointDetailPage({
   const supabase = await createClient()
   const session = await getSessionContext()
   const canManage = session?.role === 'owner' || session?.role === 'admin'
+  // Las acciones remotas admiten el permiso granular 'tasks.issue' (ademas de admin).
+  const canIssueTasks = can(session, 'tasks.issue')
 
   const { data: endpoint } = await supabase
     .from('endpoints')
@@ -112,7 +114,7 @@ export default async function EndpointDetailPage({
     liveStatus !== 'online' ? extractMac(endpoint.hardware_info) : undefined
 
   let relays: { id: string; hostname: string }[] = []
-  if (canManage && targetMac) {
+  if (canIssueTasks && targetMac) {
     const { data: peers } = await supabase
       .from('endpoints')
       .select('id, hostname, status, last_seen_at')
@@ -226,7 +228,7 @@ export default async function EndpointDetailPage({
 
         <EndpointTags endpointId={endpoint.id} initial={endpoint.tags ?? []} canEdit={canManage} />
 
-        {canManage ? (
+        {canIssueTasks ? (
           <RemoteActions
             endpointId={endpoint.id}
             hostname={endpoint.hostname}

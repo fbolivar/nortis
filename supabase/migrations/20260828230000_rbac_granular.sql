@@ -1,0 +1,5 @@
+-- RBAC granular ADITIVO (gestionadas 'rbac_permisos_granulares', 'rbac_aplicar_gates',
+-- 'rbac_politicas_gate'): users.permissions text[] + has_permission(perm) (true para
+-- admin/owner) + set_user_permissions (admin). Gates conectados a permisos:
+--   tasks.issue -> issue_agent_task ; incidents.manage -> RLS update dlp_incidents ;
+--   policies.manage -> RLS security_profiles ; exceptions.approve -> resolve_exception.

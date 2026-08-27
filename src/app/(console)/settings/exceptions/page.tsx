@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getSessionContext } from '@/features/auth/services/session'
+import { getSessionContext, can } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
 import {
   ExceptionsManager,
@@ -9,7 +9,7 @@ import {
 export default async function ExceptionsSettingsPage() {
   const supabase = await createClient()
   const session = await getSessionContext()
-  const canApprove = session?.role === 'owner' || session?.role === 'admin'
+  const canApprove = can(session, 'exceptions.approve')
 
   const [{ data: exceptions }, { data: endpoints }] = await Promise.all([
     supabase

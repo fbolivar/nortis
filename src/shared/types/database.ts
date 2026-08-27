@@ -864,6 +864,7 @@ export type Database = {
           last_sign_in_at: string | null
           mfa_enabled: boolean
           organization_id: string
+          permissions: string[]
           role: Database['public']['Enums']['app_role']
           site_id: string | null
           updated_at: string
@@ -1111,6 +1112,10 @@ export type Database = {
       }
       set_data_retention: {
         Args: { p_screenshot_days: number }
+        Returns: undefined
+      }
+      set_user_permissions: {
+        Args: { p_user_id: string; p_permissions: string[] }
         Returns: undefined
       }
       request_exception: {

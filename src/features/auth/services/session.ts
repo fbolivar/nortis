@@ -9,6 +9,8 @@ export interface SessionContext {
   profile: ConsoleUser | null
   organization: Organization | null
   role: AppRole | null
+  /** Permisos granulares concedidos al usuario (ademas de su rol). */
+  permissions: string[]
   /** Nivel alcanzado en ESTA sesion. */
   currentLevel: 'aal1' | 'aal2' | null
   /** Nivel que el usuario podria alcanzar (aal2 si tiene un factor verificado). */
@@ -63,9 +65,24 @@ export async function getSessionContext(): Promise<SessionContext | null> {
     profile: profile ?? null,
     organization,
     role,
+    permissions: (profile as { permissions?: string[] } | null)?.permissions ?? [],
     currentLevel,
     nextLevel: (aal?.nextLevel as 'aal1' | 'aal2' | null) ?? null,
     mfaRequired,
     mfaSatisfied: !mfaRequired || currentLevel === 'aal2',
   }
+}
+
+/**
+ * true si la sesion puede ejercer una capacidad: es admin/owner (que tienen
+ * todo) o tiene el permiso granular concedido. Refleja exactamente la funcion
+ * has_permission de la base, para que la UI muestre lo mismo que el servidor
+ * permite.
+ */
+export function can(
+  session: Pick<SessionContext, 'role' | 'permissions'> | null,
+  perm: string,
+): boolean {
+  if (!session) return false
+  return session.role === 'owner' || session.role === 'admin' || session.permissions.includes(perm)
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getSessionContext } from '@/features/auth/services/session'
 import { UsersTable } from '@/features/tenant/components/users-table'
+import { UserPermissions } from '@/features/tenant/components/user-permissions'
 import { OwnPasswordCard } from '@/features/tenant/components/own-password-card'
 import { Callout } from '@/shared/components/ui'
 
@@ -37,6 +38,17 @@ export default async function UsersPage() {
         canManage={canManage}
         sites={sites ?? []}
         canAssignSites={canAssignSites}
+      />
+
+      <UserPermissions
+        users={(users ?? [])
+          .filter((u) => u.role === 'viewer')
+          .map((u) => ({
+            id: u.id,
+            name: u.full_name || u.email,
+            permissions: (u as { permissions?: string[] }).permissions ?? [],
+          }))}
+        canManage={canManage}
       />
 
       <OwnPasswordCard email={session?.email ?? ''} />

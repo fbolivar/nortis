@@ -1,6 +1,6 @@
 import { AlertTriangle, CircleSlash, Inbox, ShieldAlert } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { getSessionContext } from '@/features/auth/services/session'
+import { getSessionContext, can } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
 import { StatTile } from '@/shared/components/stat-tile'
 import { Callout } from '@/shared/components/ui'
@@ -15,7 +15,7 @@ const QUEUE_LIMIT = 500
 export default async function IncidentsPage() {
   const supabase = await createClient()
   const session = await getSessionContext()
-  const canReview = session?.role === 'owner' || session?.role === 'admin'
+  const canReview = can(session, 'incidents.manage')
 
   const { data, error } = await supabase
     .from('dlp_incidents')

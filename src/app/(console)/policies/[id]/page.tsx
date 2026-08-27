@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getSessionContext } from '@/features/auth/services/session'
+import { getSessionContext, can } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
 import { PolicyEditor } from '@/features/policies/components/policy-editor'
 import { ProfileAssignment } from '@/features/policies/components/profile-assignment'
@@ -30,7 +30,7 @@ export default async function PolicyDetailPage({
   // perfil no existe.
   if (!profile) notFound()
 
-  const canEdit = session?.role === 'owner' || session?.role === 'admin'
+  const canEdit = can(session, 'policies.manage')
   const consentSigned = Boolean(session?.organization?.monitoring_consent_signed_at)
 
   return (
