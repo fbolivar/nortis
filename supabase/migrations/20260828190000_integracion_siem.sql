@@ -1,0 +1,3 @@
+-- Integracion SIEM (gestionada 'integracion_siem'): alert_settings.siem_webhook_url
+-- + dlp_incidents.siem_notified_at + notify_siem_incidents (pg_cron) que envia los
+-- incidentes como JSON estructurado. set_alert_settings acepta p_siem_webhook_url.

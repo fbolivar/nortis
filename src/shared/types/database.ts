@@ -305,6 +305,7 @@ export type Database = {
           min_severity: Database['public']['Enums']['incident_severity']
           slack_webhook_url: string | null
           weekly_report: boolean
+          siem_webhook_url: string | null
           updated_at: string
         }
         Insert: {
@@ -314,6 +315,7 @@ export type Database = {
           min_severity?: Database['public']['Enums']['incident_severity']
           slack_webhook_url?: string | null
           weekly_report?: boolean
+          siem_webhook_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -323,6 +325,7 @@ export type Database = {
           min_severity?: Database['public']['Enums']['incident_severity']
           slack_webhook_url?: string | null
           weekly_report?: boolean
+          siem_webhook_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1059,6 +1062,7 @@ export type Database = {
           p_min_severity: Database['public']['Enums']['incident_severity']
           p_slack_webhook_url?: string | null
           p_weekly_report?: boolean
+          p_siem_webhook_url?: string | null
         }
         Returns: undefined
       }

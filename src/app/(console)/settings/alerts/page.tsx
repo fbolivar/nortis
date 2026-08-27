@@ -11,7 +11,7 @@ export default async function AlertsSettingsPage() {
   // RLS acota la lectura a la organizacion del usuario; puede no existir fila aun.
   const { data } = await supabase
     .from('alert_settings')
-    .select('enabled, recipients, min_severity, slack_webhook_url, weekly_report')
+    .select('enabled, recipients, min_severity, slack_webhook_url, weekly_report, siem_webhook_url')
     .maybeSingle()
 
   return (
@@ -23,6 +23,8 @@ export default async function AlertsSettingsPage() {
         slack_webhook_url:
           (data as { slack_webhook_url?: string | null } | null)?.slack_webhook_url ?? '',
         weekly_report: (data as { weekly_report?: boolean } | null)?.weekly_report ?? false,
+        siem_webhook_url:
+          (data as { siem_webhook_url?: string | null } | null)?.siem_webhook_url ?? '',
       }}
       canEdit={canEdit}
     />

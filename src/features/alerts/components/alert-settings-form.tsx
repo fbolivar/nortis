@@ -42,6 +42,7 @@ export function AlertSettingsForm({
     min_severity: IncidentSeverity
     slack_webhook_url: string
     weekly_report: boolean
+    siem_webhook_url: string
   }
   canEdit: boolean
 }) {
@@ -55,6 +56,7 @@ export function AlertSettingsForm({
   const [minSeverity, setMinSeverity] = useState<IncidentSeverity>(initial.min_severity)
   const [slackUrl, setSlackUrl] = useState(initial.slack_webhook_url)
   const [weekly, setWeekly] = useState(initial.weekly_report)
+  const [siemUrl, setSiemUrl] = useState(initial.siem_webhook_url)
 
   function save() {
     setError(undefined)
@@ -67,6 +69,7 @@ export function AlertSettingsForm({
         p_min_severity: minSeverity,
         p_slack_webhook_url: slackUrl.trim() || null,
         p_weekly_report: weekly,
+        p_siem_webhook_url: siemUrl.trim() || null,
       })
       if (e) {
         setError(e.message)
@@ -156,6 +159,22 @@ export function AlertSettingsForm({
             <p className="mt-1 text-xs text-muted-foreground">
               Si lo configuras, los incidentes de la severidad elegida se envian tambien a ese canal
               de Slack (o cualquier webhook https). Funciona independiente del correo.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="siem-url">Webhook SIEM (opcional)</Label>
+            <Input
+              id="siem-url"
+              value={siemUrl}
+              onChange={(e) => setSiemUrl(e.target.value)}
+              placeholder="https://siem.empresa.com/collector"
+              disabled={!canEdit}
+              className="font-mono text-xs"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Si lo configuras, los incidentes se envian tambien como JSON estructurado a ese
+              endpoint (Splunk, Sentinel, un colector generico). Independiente del correo y Slack.
             </p>
           </div>
 
