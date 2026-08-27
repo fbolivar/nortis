@@ -1,0 +1,3 @@
+-- Cuota de impresion (aplicado via migracion gestionada 'detect_print_quota').
+-- detect_print_quota (pg_cron cada 10 min) abre print.cuota_excedida si un equipo
+-- supera printing.quota_per_day trabajos de impresion en el dia. Requiere modo log/block.

@@ -121,7 +121,14 @@ export const policyConfigSchema = z.object({
     })
     .default({ mode: 'allow', protected_sources: [] }),
 
-  printing: z.object({ mode: printingMode.default('allow') }).default({ mode: 'allow' }),
+  printing: z
+    .object({
+      mode: printingMode.default('allow'),
+      // Cuota diaria de trabajos de impresion por equipo. 0 = sin cuota. Requiere
+      // que el modo registre los trabajos (log o block) para poder contarlos.
+      quota_per_day: z.number().int().min(0).max(100000).default(0),
+    })
+    .default({ mode: 'allow', quota_per_day: 0 }),
 
   encryption: z
     .object({ confidential_paths: z.array(folderPath).default([]) })

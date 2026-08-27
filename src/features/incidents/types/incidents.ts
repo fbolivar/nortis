@@ -84,6 +84,7 @@ export const RULE_LABEL: Record<string, string> = {
   'web.webmail_bloqueado': 'Correo personal bloqueado',
   'clipboard.copia_desde_origen_protegido': 'Copia desde origen protegido',
   'print.trabajo_intervenido': 'Trabajo de impresion intervenido',
+  'print.cuota_excedida': 'Cuota de impresion excedida',
 }
 
 export function ruleLabel(rule: string): string {

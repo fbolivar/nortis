@@ -539,6 +539,23 @@ export function PolicyEditor({
             help={PRINTING_MODE_HELP}
             onChange={(mode) => patch('printing', { mode })}
           />
+          <div className="mt-4 max-w-xs">
+            <Label htmlFor="print-quota">Cuota diaria por equipo</Label>
+            <Input
+              id="print-quota"
+              type="number"
+              min={0}
+              value={config.printing.quota_per_day}
+              onChange={(e) =>
+                patch('printing', { quota_per_day: Math.max(0, Number(e.target.value) || 0) })
+              }
+              disabled={!canEdit || config.printing.mode === 'allow'}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              0 = sin cuota. Al superar N trabajos en un dia se abre un incidente. Requiere modo
+              &quot;Registrar&quot; o &quot;Bloquear&quot; (en &quot;Permitir&quot; no se cuentan).
+            </p>
+          </div>
         </CardContent>
       </Card>
 
