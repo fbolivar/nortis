@@ -61,11 +61,14 @@
     --accent-subtle: 200 82% 94%;
 
     /*
-     * Tinta #191919: barra lateral y bloques invertidos. Casi-negro neutro.
+     * Tinta: barra lateral y bloques invertidos. Azul-pizarra profundo (#0F1B2E),
+     * de la misma familia que el azul de marca: da un aire de producto de
+     * seguridad, no el negro neutro generico de antes. El acento sigue teniendo
+     * contraste de sobra encima.
      */
-    --ink: 0 0% 10%;
-    --ink-foreground: 210 16% 90%;
-    --ink-muted: 210 8% 58%;
+    --ink: 218 51% 12%;
+    --ink-foreground: 214 30% 91%;
+    --ink-muted: 215 18% 62%;
 
     /* --- Estados. Unico uso legitimo del color fuera del azul de marca. ---
        Todos los tonos solidos superan 4.5:1 sobre blanco; los `subtle` son el

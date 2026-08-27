@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSessionContext } from '@/features/auth/services/session'
 import { PageHeader } from '@/shared/components/console-shell'
 import { Button, Callout } from '@/shared/components/ui'
+import { StatTile } from '@/shared/components/stat-tile'
 import { offlineCutoffISO } from '@/lib/utils'
 import {
   ActivityByDayChart,
@@ -287,6 +288,34 @@ export default async function DashboardPage() {
       />
 
       <div className="page-body space-y-6">
+        {/* Vistazo: cuatro cifras de igual tamaño, el estado de un golpe de vista
+            antes del detalle. */}
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile
+            label="Equipos"
+            value={totalEndpoints}
+            hint={`${onlineCount} en linea`}
+          />
+          <StatTile
+            label="Fuera de linea"
+            value={offlineCount}
+            tone={offlineCount > 0 ? 'warning' : 'success'}
+            hint={`de ${totalEndpoints} equipos`}
+          />
+          <StatTile
+            label="Incidentes severos"
+            value={severeCount}
+            tone={severeCount > 0 ? 'critical' : 'success'}
+            hint="abiertos, alta o critica"
+          />
+          <StatTile
+            label="Sin politica"
+            value={unassignedCount}
+            tone={unassignedCount > 0 ? 'warning' : 'success'}
+            hint="equipos sin DLP asignado"
+          />
+        </section>
+
         {/* Fortalece tu proteccion: lo primero que se ve es lo primero que hay
             que hacer. */}
         <ProtectionCard items={protectionItems} />
@@ -306,7 +335,7 @@ export default async function DashboardPage() {
         {/* ------------------------------------------------------ Incidentes --- */}
         <section className="space-y-3">
           <SectionTitle>Incidentes</SectionTitle>
-          <div className="grid items-start gap-3 lg:grid-cols-2">
+          <div className="grid items-stretch gap-3 lg:grid-cols-2">
             <OpenInsightsDonut data={insightsByType} />
             <IncidentsOverTimeChart data={insightsSeries} />
           </div>
@@ -338,11 +367,11 @@ export default async function DashboardPage() {
         */}
         <section className="space-y-3">
           <SectionTitle>Datos</SectionTitle>
-          <div className="grid items-start gap-3 lg:grid-cols-2">
+          <div className="grid items-stretch gap-3 lg:grid-cols-2">
             <ClassificationBars data={classificationBars} />
             <CategoryDonutChart data={byCategory.data ?? []} delay={120} />
           </div>
-          <div className="grid items-start gap-3 lg:grid-cols-2">
+          <div className="grid items-stretch gap-3 lg:grid-cols-2">
             <ActivityByDayChart data={byDay.data ?? []} delay={180} />
             <ConnectedDevices rows={connectedUsb.data ?? []} />
           </div>
@@ -355,7 +384,7 @@ export default async function DashboardPage() {
         */}
         <section className="space-y-3">
           <SectionTitle>Comportamiento</SectionTitle>
-          <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <UsersByIncidents rows={topUsersByIncidents} />
             <RankingChart
               title="Aplicaciones mas usadas"
