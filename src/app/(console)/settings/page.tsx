@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getSessionContext } from '@/features/auth/services/session'
 import { ConsentPanel } from '@/features/tenant/components/consent-panel'
+import { RetentionPanel } from '@/features/tenant/components/retention-panel'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui'
 import { formatDateTime } from '@/lib/utils'
 import type { PlanTier } from '@/shared/types/database'
@@ -17,6 +19,14 @@ export default async function OrganizationSettingsPage() {
   if (!session?.organization) redirect('/onboarding')
 
   const org = session.organization
+
+  const supabase = await createClient()
+  const { data: retention } = await supabase
+    .from('organizations')
+    .select('screenshot_retention_days')
+    .eq('id', org.id)
+    .maybeSingle()
+  const canManage = session.role === 'owner' || session.role === 'admin'
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -47,6 +57,11 @@ export default async function OrganizationSettingsPage() {
       </Card>
 
       <ConsentPanel organization={org} canEdit={session.role === 'owner'} />
+
+      <RetentionPanel
+        screenshotDays={retention?.screenshot_retention_days ?? 30}
+        canEdit={canManage}
+      />
     </div>
   )
 }

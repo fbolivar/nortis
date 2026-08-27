@@ -1,0 +1,3 @@
+-- Retencion de capturas por-org (gestionada 'retencion_capturas'):
+-- organizations.screenshot_retention_days + set_data_retention (admin+MFA) +
+-- prune_screenshots (pg_cron diario). Eventos siguen en purga por particion (90d).

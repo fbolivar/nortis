@@ -750,6 +750,7 @@ export type Database = {
           monitoring_consent_signed_by: string | null
           name: string
           plan_tier: Database['public']['Enums']['plan_tier']
+          screenshot_retention_days: number
           slug: string
           updated_at: string
         }
@@ -761,6 +762,7 @@ export type Database = {
           monitoring_consent_signed_by?: string | null
           name: string
           plan_tier?: Database['public']['Enums']['plan_tier']
+          screenshot_retention_days?: number
           slug: string
           updated_at?: string
         }
@@ -1068,6 +1070,10 @@ export type Database = {
       }
       set_endpoint_tags: {
         Args: { p_endpoint_id: string; p_tags: string[] }
+        Returns: undefined
+      }
+      set_data_retention: {
+        Args: { p_screenshot_days: number }
         Returns: undefined
       }
       upsert_playbook_rule: {
