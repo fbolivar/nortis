@@ -17,6 +17,7 @@ import {
   RefreshCw,
   FileBarChart,
   ShieldCheck,
+  KeyRound,
   Rocket,
   Search,
   Tags,
@@ -62,6 +63,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/reports', label: 'Reportes', icon: FileBarChart },
       { href: '/reports/compliance', label: 'Cumplimiento', icon: ShieldCheck },
+      { href: '/reports/licenses', label: 'Licencias', icon: KeyRound },
       { href: '/updates', label: 'Actualizaciones', icon: RefreshCw },
       { href: '/settings', label: 'Administracion', icon: Settings },
     ],

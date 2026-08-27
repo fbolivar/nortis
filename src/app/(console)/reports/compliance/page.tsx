@@ -18,6 +18,7 @@ import {
 import { formatRelative, nowMs } from '@/lib/utils'
 import { resolveLiveStatus } from '@/features/telemetry/components/endpoint-status'
 import { compliance, type ComplianceLevel } from '@/features/inventory/lib/posture'
+import { PrintButton } from '@/shared/components/print-button'
 
 const LEVEL_LABEL: Record<ComplianceLevel, string> = {
   ok: 'Cumple',
@@ -92,6 +93,7 @@ export default async function CompliancePage() {
       <PageHeader
         title="Cumplimiento"
         description="Postura de seguridad de toda la flota, del equipo mas expuesto al que mas cumple"
+        actions={<PrintButton label="Informe / PDF" />}
       />
 
       <div className="page-body space-y-6">
@@ -166,6 +168,14 @@ export default async function CompliancePage() {
             )}
           </CardContent>
         </Card>
+
+        <p className="text-xs text-muted-foreground">
+          Este informe resume la postura tecnica de seguridad de los equipos como apoyo a la
+          demostracion de medidas de seguridad exigidas por la Ley 1581 de 2012 (proteccion de datos
+          personales) y buenas practicas ISO 27001. El puntaje pondera controles criticos (cifrado,
+          antivirus, cortafuegos, amenazas) por encima de los avisos (parches, tiempo de encendido).
+          Generado desde Nortis.
+        </p>
       </div>
     </>
   )
