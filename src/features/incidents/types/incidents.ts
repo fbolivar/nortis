@@ -58,6 +58,7 @@ export const CHANNEL_LABEL: Record<string, string> = {
   email: 'Correo',
   apps: 'Aplicaciones',
   network: 'Red',
+  accounts: 'Cuentas',
 }
 
 export const RULE_LABEL: Record<string, string> = {
@@ -66,6 +67,10 @@ export const RULE_LABEL: Record<string, string> = {
   'classification.dato_vigilado': 'Dato clasificado en movimiento',
   'apps.proceso_no_autorizado': 'Aplicacion no autorizada',
   'network.cambio_de_red': 'Cambio de red (IP publica)',
+  'accounts.nuevo_administrador': 'Nuevo administrador local',
+  'accounts.cuenta_nueva': 'Cuenta local nueva',
+  'accounts.cuenta_sensible_habilitada': 'Cuenta integrada habilitada',
+  'accounts.inicios_fallidos': 'Exceso de inicios de sesion fallidos',
   'usb.dispositivo_no_autorizado': 'Dispositivo USB no autorizado',
   'web.dominio_bloqueado': 'Dominio bloqueado',
   'web.fuera_de_lista_blanca': 'Sitio fuera de la lista blanca',
