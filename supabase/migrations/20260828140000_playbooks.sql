@@ -1,0 +1,6 @@
+-- Playbooks de respuesta automatica (aplicado via migracion gestionada 'playbooks').
+-- Tabla playbook_rules (org, enabled, name, min_severity, match_channel, action)
+-- con RLS por org; columna dlp_incidents.playbook_acted_at; RPCs:
+--   upsert_playbook_rule / delete_playbook_rule (admin + MFA)
+--   pending_playbook_actions(secret) / issue_playbook_action(secret,...) — autenticadas
+--   por el secreto de Vault 'playbook_secret'. La consola firma; el agente valida la firma.

@@ -1,0 +1,4 @@
+-- Disparador de playbooks (aplicado via migracion gestionada 'playbooks_trigger').
+-- trigger_playbooks(): pg_net POST a console_base_url/api/playbooks/run con el
+-- secreto en cabecera; no-op si faltan console_base_url o playbook_secret en Vault.
+-- Programado en pg_cron cada 3 min. Requiere consola desplegada con URL publica.

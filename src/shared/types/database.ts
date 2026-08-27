@@ -324,6 +324,42 @@ export type Database = {
         }
         Relationships: []
       }
+      playbook_rules: {
+        Row: {
+          id: string
+          organization_id: string
+          enabled: boolean
+          name: string
+          min_severity: Database['public']['Enums']['incident_severity']
+          match_channel: string | null
+          action: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          enabled?: boolean
+          name: string
+          min_severity?: Database['public']['Enums']['incident_severity']
+          match_channel?: string | null
+          action: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          enabled?: boolean
+          name?: string
+          min_severity?: Database['public']['Enums']['incident_severity']
+          match_channel?: string | null
+          action?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       activity_events: {
         Row: {
           /** Nulo en los datos sembrados; obligatorio para todo lo que entra por la API. */
@@ -1025,6 +1061,43 @@ export type Database = {
       set_endpoint_tags: {
         Args: { p_endpoint_id: string; p_tags: string[] }
         Returns: undefined
+      }
+      upsert_playbook_rule: {
+        Args: {
+          p_id: string | null
+          p_enabled: boolean
+          p_name: string
+          p_min_severity: Database['public']['Enums']['incident_severity']
+          p_match_channel: string | null
+          p_action: string
+        }
+        Returns: string
+      }
+      delete_playbook_rule: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      pending_playbook_actions: {
+        Args: { p_secret: string }
+        Returns: {
+          incident_id: string
+          endpoint_id: string
+          organization_id: string
+          kind: string
+        }[]
+      }
+      issue_playbook_action: {
+        Args: {
+          p_secret: string
+          p_incident_id: string
+          p_endpoint_id: string
+          p_kind: string
+          p_payload: string
+          p_expires_at: string
+          p_signature: string
+          p_not_before: string
+        }
+        Returns: string
       }
       agent_report_inventory: {
         Args: { p_credential: string; p_hardware: Json; p_software: Json; p_ip?: string | null }
