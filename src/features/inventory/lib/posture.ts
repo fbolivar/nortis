@@ -254,6 +254,79 @@ export function readExposure(hardware: Json | null): Exposure | undefined {
   return { ports, shares, autoruns }
 }
 
+/* -------------------------------------------------------------------------- */
+/* Historial USB, confianza y estado en vivo                                   */
+/* -------------------------------------------------------------------------- */
+
+export interface UsbDevice {
+  name: string
+  id?: string
+}
+
+export function readUsbHistory(hardware: Json | null): UsbDevice[] {
+  const hw = obj(hardware) ?? {}
+  return asArray(hw.usb_history)
+    .map((d): UsbDevice | undefined => {
+      const o = obj(d)
+      const name = o?.name
+      if (typeof name !== 'string' || name.trim() === '') return undefined
+      return { name, id: typeof o?.id === 'string' ? o.id : undefined }
+    })
+    .filter((x): x is UsbDevice => x !== undefined)
+}
+
+export interface Trust {
+  tpmPresent?: boolean
+  tpmReady?: boolean
+  secureBoot?: boolean
+  expiringCerts: { subject: string; notAfter?: string }[]
+}
+
+export function readTrust(hardware: Json | null): Trust | undefined {
+  const hw = obj(hardware) ?? {}
+  const t = obj(hw.trust)
+  if (!t) return undefined
+  const tpm = obj(t.tpm)
+  const certs = asArray(t.expiring_certs)
+    .map((c): { subject: string; notAfter?: string } | undefined => {
+      const o = obj(c)
+      const subject = o?.subject
+      if (typeof subject !== 'string' || subject.trim() === '') return undefined
+      return { subject, notAfter: typeof o?.not_after === 'string' ? o.not_after : undefined }
+    })
+    .filter((c): c is { subject: string; notAfter?: string } => c !== undefined)
+  return {
+    tpmPresent: tpm ? truthy(tpm.present) : undefined,
+    tpmReady: tpm ? truthy(tpm.ready) : undefined,
+    secureBoot: t.secure_boot === null ? undefined : truthy(t.secure_boot),
+    expiringCerts: certs,
+  }
+}
+
+export interface Runtime {
+  topProcesses: { name: string; ramMb?: number }[]
+  activeUsers: string[]
+}
+
+export function readRuntime(hardware: Json | null): Runtime | undefined {
+  const hw = obj(hardware) ?? {}
+  const r = obj(hw.runtime)
+  if (!r) return undefined
+  const top = asArray(r.top_processes)
+    .map((p): { name: string; ramMb?: number } | undefined => {
+      const o = obj(p)
+      const name = o?.name
+      if (typeof name !== 'string' || name.trim() === '') return undefined
+      return { name, ramMb: num(o?.ram_mb) }
+    })
+    .filter((p): p is { name: string; ramMb?: number } => p !== undefined)
+  const users = asArray(r.active_users)
+    .map((u) => (typeof u === 'string' ? u : undefined))
+    .filter((u): u is string => u !== undefined && u.trim() !== '')
+  if (top.length === 0 && users.length === 0) return undefined
+  return { topProcesses: top, activeUsers: users }
+}
+
 export interface HealthFlag {
   label: string
   tone: 'critical' | 'warning'

@@ -7,6 +7,9 @@ import {
   healthFlags,
   readAccounts,
   readExposure,
+  readUsbHistory,
+  readTrust,
+  readRuntime,
 } from '@/features/inventory/lib/posture'
 import {
   Cpu,
@@ -93,6 +96,9 @@ export function EndpointInventory({
   const flags = healthFlags(postura)
   const cuentas = readAccounts(hardware)
   const exposicion = readExposure(hardware)
+  const usb = readUsbHistory(hardware)
+  const confianza = readTrust(hardware)
+  const runtime = readRuntime(hardware)
   const si = (v?: boolean) => (v === undefined ? '—' : v ? 'Si' : 'No')
 
   const hw = (hardware && typeof hardware === 'object' && !Array.isArray(hardware)
@@ -427,6 +433,109 @@ export function EndpointInventory({
                 </div>
               </div>
             ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {confianza ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confianza del equipo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <PostureItem label="TPM presente" value={si(confianza.tpmPresent)} />
+              <PostureItem label="TPM listo" value={si(confianza.tpmReady)} />
+              <PostureItem label="Secure Boot" value={si(confianza.secureBoot)} />
+            </dl>
+            {confianza.expiringCerts.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Certificados por caducar ({confianza.expiringCerts.length})
+                </p>
+                <ul className="space-y-1">
+                  {confianza.expiringCerts.map((c, i) => (
+                    <li key={`${c.subject}-${i}`} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-mono text-xs">{c.subject}</span>
+                      {c.notAfter ? (
+                        <Badge tone="warning">{fechaCorta(c.notAfter)}</Badge>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {runtime ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado en vivo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {runtime.activeUsers.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Usuarios con sesion iniciada ({runtime.activeUsers.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {runtime.activeUsers.map((u, i) => (
+                    <Badge key={`${u}-${i}`} tone="info">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {runtime.topProcesses.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Procesos que mas memoria usan
+                </p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Th>Proceso</Th>
+                        <Th>RAM</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {runtime.topProcesses.map((p, i) => (
+                        <tr key={`${p.name}-${i}`} className="hover:bg-surface-muted">
+                          <Td className="font-medium">{p.name}</Td>
+                          <Td className="tabular-nums text-muted-foreground">
+                            {p.ramMb === undefined ? '—' : `${p.ramMb} MB`}
+                          </Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {usb.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Historial de dispositivos USB</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Dispositivos de almacenamiento que se han conectado a este equipo alguna vez.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1">
+              {usb.map((d, i) => (
+                <li key={`${d.id ?? d.name}-${i}`} className="text-sm">
+                  {d.name}
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       ) : null}
