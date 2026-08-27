@@ -74,6 +74,7 @@ export const RULE_LABEL: Record<string, string> = {
   'persistence.autoarranque_nuevo': 'Nuevo programa en el autoarranque',
   'exposure.recurso_compartido_nuevo': 'Nuevo recurso compartido',
   'exposure.puerto_nuevo': 'Nuevo puerto a la escucha',
+  'exfil.copia_a_externo': 'Copia masiva a unidad externa',
   'usb.dispositivo_no_autorizado': 'Dispositivo USB no autorizado',
   'web.dominio_bloqueado': 'Dominio bloqueado',
   'web.fuera_de_lista_blanca': 'Sitio fuera de la lista blanca',

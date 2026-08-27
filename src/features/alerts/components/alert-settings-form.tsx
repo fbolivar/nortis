@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
   FormError,
+  Input,
   Label,
 } from '@/shared/components/ui'
 import { StringListInput } from '@/features/policies/components/string-list-input'
@@ -35,7 +36,12 @@ export function AlertSettingsForm({
   initial,
   canEdit,
 }: {
-  initial: { enabled: boolean; recipients: string[]; min_severity: IncidentSeverity }
+  initial: {
+    enabled: boolean
+    recipients: string[]
+    min_severity: IncidentSeverity
+    slack_webhook_url: string
+  }
   canEdit: boolean
 }) {
   const router = useRouter()
@@ -46,6 +52,7 @@ export function AlertSettingsForm({
   const [enabled, setEnabled] = useState(initial.enabled)
   const [recipients, setRecipients] = useState<string[]>(initial.recipients)
   const [minSeverity, setMinSeverity] = useState<IncidentSeverity>(initial.min_severity)
+  const [slackUrl, setSlackUrl] = useState(initial.slack_webhook_url)
 
   function save() {
     setError(undefined)
@@ -56,6 +63,7 @@ export function AlertSettingsForm({
         p_enabled: enabled,
         p_recipients: recipients,
         p_min_severity: minSeverity,
+        p_slack_webhook_url: slackUrl.trim() || null,
       })
       if (e) {
         setError(e.message)
@@ -131,6 +139,22 @@ export function AlertSettingsForm({
             validate={validateEmail}
             disabled={!canEdit}
           />
+
+          <div>
+            <Label htmlFor="slack-url">Webhook de Slack (opcional)</Label>
+            <Input
+              id="slack-url"
+              value={slackUrl}
+              onChange={(e) => setSlackUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/services/…"
+              disabled={!canEdit}
+              className="font-mono text-xs"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Si lo configuras, los incidentes de la severidad elegida se envian tambien a ese canal
+              de Slack (o cualquier webhook https). Funciona independiente del correo.
+            </p>
+          </div>
 
           {saved ? (
             <p className="text-sm text-success">Guardado.</p>
