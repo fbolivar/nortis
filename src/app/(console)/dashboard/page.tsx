@@ -22,11 +22,17 @@ import {
   IncidentsOverTimeChart,
 } from '@/features/dashboard/components/insights-charts'
 import { UsersByIncidents } from '@/features/dashboard/components/users-by-incidents'
-import { ruleLabel } from '@/features/incidents/types/incidents'
+import { ruleLabel, CHANNEL_LABEL } from '@/features/incidents/types/incidents'
 import { ClassificationBars } from '@/features/classification/components/classification-bars'
 import { classifyPath, type Classification } from '@/features/classification/lib/classify'
 import { readPosture, compliance } from '@/features/inventory/lib/posture'
 import { FleetPosture, type FleetPostureData } from '@/features/dashboard/components/fleet-posture'
+import {
+  RemoteActionsPanel,
+  AgentVersions,
+  NetworkDiscovery,
+  IncidentsByChannel,
+} from '@/features/dashboard/components/operations'
 
 /** Titulo de seccion del panel. */
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -48,6 +54,7 @@ function incidentActor(snapshot: unknown): string | null {
 
 type IncidentRow = {
   rule_triggered: string
+  rule_channel: string | null
   status: string
   detected_at: string
   event_snapshot: unknown
@@ -62,6 +69,19 @@ function openByType(rows: IncidentRow[]): { type: string; count: number }[] {
     m.set(key, (m.get(key) ?? 0) + 1)
   }
   return [...m.entries()].map(([type, count]) => ({ type, count }))
+}
+
+/** Incidentes abiertos agrupados por canal, para la barra por canal. */
+function openByChannel(rows: IncidentRow[]): { type: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const r of rows) {
+    if (r.status !== 'open') continue
+    const key = CHANNEL_LABEL[r.rule_channel ?? ''] ?? r.rule_channel ?? 'Otro'
+    m.set(key, (m.get(key) ?? 0) + 1)
+  }
+  return [...m.entries()]
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
 }
 
 /** Incidentes por dia (rellenando huecos con cero) para la barra en el tiempo. */
@@ -148,6 +168,8 @@ export default async function DashboardPage() {
     fileEvents,
     postureRows,
     pendingExc,
+    taskRows,
+    versionRows,
   ] = await Promise.all([
     // `select('id')` y no `select('*')` en los conteos: `authenticated` no tiene
     // permiso sobre agent_credential_hash, y pedir la tabla entera —aunque sea
@@ -183,7 +205,7 @@ export default async function DashboardPage() {
     // tipo, evolucion en el tiempo y usuarios). Solo los campos que se agregan.
     supabase
       .from('dlp_incidents')
-      .select('rule_triggered, status, detected_at, event_snapshot')
+      .select('rule_triggered, rule_channel, status, detected_at, event_snapshot')
       .gte('detected_at', offlineCutoffISO(INSIGHT_DAYS * 24 * 60))
       .limit(5000),
     // Las agregaciones corren en Postgres (SECURITY INVOKER, asi que RLS acota
@@ -213,6 +235,14 @@ export default async function DashboardPage() {
       .from('policy_exceptions')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending'),
+    // Acciones remotas recientes (todos los tipos): estado + equipo.
+    supabase
+      .from('agent_tasks')
+      .select('id, kind, status, created_at, endpoints(hostname)')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    // Versión del agente por equipo, para la distribución.
+    supabase.from('endpoints').select('agent_version'),
   ])
 
   const totalEndpoints = endpoints.count ?? 0
@@ -225,8 +255,68 @@ export default async function DashboardPage() {
   // Agregaciones de incidentes (30 dias) para Insights y Comportamiento.
   const incidentRows = (incidents30d.data ?? []) as unknown as IncidentRow[]
   const insightsByType = openByType(incidentRows)
+  const insightsByChannel = openByChannel(incidentRows)
   const insightsSeries = incidentsPerDay(incidentRows)
   const topUsersByIncidents = usersByIncidents(incidentRows)
+
+  // Acciones remotas: conteo por estado + las mas recientes.
+  type TaskRow = {
+    id: string
+    kind: string
+    status: string
+    created_at: string
+    endpoints: { hostname: string } | null
+  }
+  const tasks = (taskRows.data ?? []) as unknown as TaskRow[]
+  const taskSummary = { done: 0, failed: 0, inflight: 0 }
+  for (const t of tasks) {
+    if (t.status === 'done') taskSummary.done += 1
+    else if (t.status === 'failed') taskSummary.failed += 1
+    else taskSummary.inflight += 1 // pending / sent / running
+  }
+  const recentTasks = tasks.slice(0, 7).map((t) => ({
+    id: t.id,
+    kind: t.kind,
+    status: t.status,
+    hostname: t.endpoints?.hostname ?? '—',
+    createdAt: t.created_at,
+  }))
+
+  // Distribucion de versiones del agente.
+  const versionCounts = new Map<string, number>()
+  for (const r of versionRows.data ?? []) {
+    const v = (r as { agent_version: string | null }).agent_version
+    if (!v) continue
+    versionCounts.set(v, (versionCounts.get(v) ?? 0) + 1)
+  }
+  const versionDist = [...versionCounts.entries()]
+    .map(([version, count]) => ({ version, count, current: version === currentVersion }))
+    .sort((a, b) => (a.current ? -1 : b.current ? 1 : b.count - a.count))
+  const upToDate = versionDist.filter((v) => v.current).reduce((s, v) => s + v.count, 0)
+
+  // Descubrimiento de red: MACs vistas en la LAN que NO son de un equipo gestionado.
+  const managedMacs = new Set<string>()
+  const lanMacs = new Set<string>()
+  for (const row of postureRows.data ?? []) {
+    const hw = (row as { hardware_info: unknown }).hardware_info
+    if (!hw || typeof hw !== 'object') continue
+    const net = (hw as Record<string, unknown>).network
+    const ifaces = net && typeof net === 'object' ? (net as Record<string, unknown>).interfaces : null
+    if (Array.isArray(ifaces)) {
+      for (const i of ifaces) {
+        const mac = i && typeof i === 'object' ? (i as Record<string, unknown>).mac : null
+        if (typeof mac === 'string' && mac) managedMacs.add(mac.toLowerCase())
+      }
+    }
+    const lan = (hw as Record<string, unknown>).lan_hosts
+    const lanArr = Array.isArray(lan) ? lan : lan ? [lan] : []
+    for (const h of lanArr) {
+      const mac = h && typeof h === 'object' ? (h as Record<string, unknown>).mac : null
+      if (typeof mac === 'string' && mac) lanMacs.add(mac.toLowerCase())
+    }
+  }
+  let unmanagedHosts = 0
+  for (const m of lanMacs) if (!managedMacs.has(m)) unmanagedHosts += 1
 
   const classificationBars = fileOpsByClassification(
     fileEvents.data ?? [],
@@ -389,8 +479,9 @@ export default async function DashboardPage() {
           <SectionTitle>Incidentes</SectionTitle>
           <div className="grid items-stretch gap-3 lg:grid-cols-2">
             <OpenInsightsDonut data={insightsByType} />
-            <IncidentsOverTimeChart data={insightsSeries} />
+            <IncidentsByChannel data={insightsByChannel} />
           </div>
+          <IncidentsOverTimeChart data={insightsSeries} />
           <IncidentSpotlight
             incidents={recentIncidents}
             emptyTitle={
@@ -409,6 +500,16 @@ export default async function DashboardPage() {
               ) : undefined
             }
           />
+        </section>
+
+        {/* -------------------------------------------------------- Operacion --- */}
+        <section className="space-y-3">
+          <SectionTitle>Operacion</SectionTitle>
+          <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
+            <RemoteActionsPanel summary={taskSummary} recent={recentTasks} />
+            <AgentVersions dist={versionDist} upToDate={upToDate} total={totalEndpoints} />
+            <NetworkDiscovery unmanaged={unmanagedHosts} />
+          </div>
         </section>
 
         {/* ------------------------------------------------------------ Datos --- */}
