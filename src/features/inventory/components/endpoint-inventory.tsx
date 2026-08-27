@@ -2,7 +2,12 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { issueUninstall } from '@/features/tasks/services/tasks'
-import { readPosture, healthFlags, readAccounts } from '@/features/inventory/lib/posture'
+import {
+  readPosture,
+  healthFlags,
+  readAccounts,
+  readExposure,
+} from '@/features/inventory/lib/posture'
 import {
   Cpu,
   HardDrive,
@@ -87,6 +92,7 @@ export function EndpointInventory({
   const postura = readPosture(hardware)
   const flags = healthFlags(postura)
   const cuentas = readAccounts(hardware)
+  const exposicion = readExposure(hardware)
   const si = (v?: boolean) => (v === undefined ? '—' : v ? 'Si' : 'No')
 
   const hw = (hardware && typeof hardware === 'object' && !Array.isArray(hardware)
@@ -348,6 +354,77 @@ export function EndpointInventory({
                     ))}
                   </tbody>
                 </Table>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {exposicion ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Exposicion y persistencia</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Puertos a la escucha, recursos compartidos y programas que arrancan solos. Util para
+              detectar servicios expuestos o software que se re-lanza en cada arranque.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {exposicion.ports.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Puertos a la escucha ({exposicion.ports.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {exposicion.ports.map((p, i) => (
+                    <Badge key={`${p.port}-${i}`} tone="neutral">
+                      <span className="tabular-nums">{p.port}</span>
+                      {p.process ? <span className="ml-1 text-muted-foreground">{p.process}</span> : null}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {exposicion.shares.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Recursos compartidos ({exposicion.shares.length})
+                </p>
+                <ul className="space-y-1">
+                  {exposicion.shares.map((s, i) => (
+                    <li key={`${s.name}-${i}`} className="flex flex-wrap items-center gap-2 text-sm">
+                      <Badge tone="warning">{s.name}</Badge>
+                      {s.path ? <span className="font-mono text-xs text-muted-foreground">{s.path}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {exposicion.autoruns.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Autoarranque ({exposicion.autoruns.length})
+                </p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Th>Entrada</Th>
+                        <Th>Comando</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exposicion.autoruns.map((a, i) => (
+                        <tr key={`${a.name}-${i}`} className="hover:bg-surface-muted">
+                          <Td className="font-medium">{a.name}</Td>
+                          <Td className="font-mono text-xs text-muted-foreground">{a.command ?? '—'}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
               </div>
             ) : null}
           </CardContent>

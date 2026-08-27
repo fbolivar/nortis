@@ -184,6 +184,76 @@ export function readAccounts(hardware: Json | null): Accounts | undefined {
   return { users, admins, failedLogons24h: num(acc.failed_logons_24h) }
 }
 
+/* -------------------------------------------------------------------------- */
+/* Exposicion de red y persistencia                                            */
+/* -------------------------------------------------------------------------- */
+
+export interface ListeningPort {
+  port: number
+  address?: string
+  process?: string
+}
+
+export interface SmbShare {
+  name: string
+  path?: string
+}
+
+export interface AutorunEntry {
+  name: string
+  command?: string
+  location?: string
+}
+
+export interface Exposure {
+  ports: ListeningPort[]
+  shares: SmbShare[]
+  autoruns: AutorunEntry[]
+}
+
+export function readExposure(hardware: Json | null): Exposure | undefined {
+  const hw = obj(hardware) ?? {}
+
+  const ports = asArray(hw.listening_ports)
+    .map((p): ListeningPort | undefined => {
+      const o = obj(p)
+      const port = num(o?.port)
+      if (port === undefined) return undefined
+      return {
+        port,
+        address: typeof o?.address === 'string' ? o.address : undefined,
+        process: typeof o?.process === 'string' && o.process !== '' ? o.process : undefined,
+      }
+    })
+    .filter((x): x is ListeningPort => x !== undefined)
+    .sort((a, b) => a.port - b.port)
+
+  const shares = asArray(hw.shares)
+    .map((s): SmbShare | undefined => {
+      const o = obj(s)
+      const name = o?.Name
+      if (typeof name !== 'string' || name.trim() === '') return undefined
+      return { name, path: typeof o?.Path === 'string' ? o.Path : undefined }
+    })
+    .filter((x): x is SmbShare => x !== undefined)
+
+  const autoruns = asArray(hw.autoruns)
+    .map((a): AutorunEntry | undefined => {
+      const o = obj(a)
+      const name = o?.name
+      if (typeof name !== 'string' || name.trim() === '') return undefined
+      return {
+        name,
+        command: typeof o?.command === 'string' ? o.command : undefined,
+        location: typeof o?.location === 'string' ? o.location : undefined,
+      }
+    })
+    .filter((x): x is AutorunEntry => x !== undefined)
+
+  if (ports.length === 0 && shares.length === 0 && autoruns.length === 0) return undefined
+  return { ports, shares, autoruns }
+}
+
 export interface HealthFlag {
   label: string
   tone: 'critical' | 'warning'
