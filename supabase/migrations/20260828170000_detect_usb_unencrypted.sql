@@ -1,0 +1,3 @@
+-- USB sin cifrar (aplicado via migracion gestionada 'detect_usb_unencrypted').
+-- detect_usb_unencrypted (pg_cron) abre usb.sin_cifrar cuando el perfil exige
+-- cifrado (usb.require_encryption) y se conecta un USB con payload.encrypted=false.

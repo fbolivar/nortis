@@ -449,6 +449,22 @@ export function PolicyEditor({
               disabled={!canEdit}
             />
           ) : null}
+          <label className="mt-4 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.usb.require_encryption}
+              onChange={(e) => patch('usb', { require_encryption: e.target.checked })}
+              disabled={!canEdit}
+              className="mt-1"
+            />
+            <span>
+              Exigir cifrado (BitLocker)
+              <span className="block text-xs text-muted-foreground">
+                Conectar un USB sin cifrar abre un incidente. El agente reporta el estado; no bloquea
+                el dispositivo por si mismo.
+              </span>
+            </span>
+          </label>
         </CardContent>
       </Card>
 

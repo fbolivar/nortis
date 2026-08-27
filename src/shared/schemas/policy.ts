@@ -97,8 +97,11 @@ export const policyConfigSchema = z.object({
     .object({
       mode: enforcementMode.default('allow'),
       serial_allowlist: z.array(usbSerial).default([]),
+      // Si esta activo, conectar un USB sin BitLocker abre un incidente. El
+      // agente reporta el estado de cifrado; la deteccion es server-side.
+      require_encryption: z.boolean().default(false),
     })
-    .default({ mode: 'allow', serial_allowlist: [] }),
+    .default({ mode: 'allow', serial_allowlist: [], require_encryption: false }),
 
   web: z
     .object({
