@@ -1,0 +1,3 @@
+-- Geocerca: detect_geofence (pg_cron cada 10 min) abre geo.fuera_de_sede si el
+-- equipo reporta desde una IP publica fuera de las IPs autorizadas del perfil.
+-- La config vive en el JSON de la politica (security_profiles.config.geofence).

@@ -77,6 +77,7 @@ export const RULE_LABEL: Record<string, string> = {
   'exposure.puerto_nuevo': 'Nuevo puerto a la escucha',
   'exfil.copia_a_externo': 'Copia masiva a unidad externa',
   'integrity.archivo_modificado': 'Archivo critico modificado',
+  'geo.fuera_de_sede': 'Equipo fuera de la sede (geocerca)',
   'usb.dispositivo_no_autorizado': 'Dispositivo USB no autorizado',
   'web.dominio_bloqueado': 'Dominio bloqueado',
   'web.fuera_de_lista_blanca': 'Sitio fuera de la lista blanca',

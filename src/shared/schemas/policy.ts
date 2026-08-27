@@ -194,6 +194,18 @@ export const policyConfigSchema = z.object({
     })
     .default({ enabled: false, days: [1, 2, 3, 4, 5], start: '08:00', end: '18:00' }),
 
+  /**
+   * Geocerca. Si esta activa, el equipo solo deberia verse desde las IP publicas
+   * autorizadas (la sede). Si reporta desde otra, se abre un incidente. La
+   * comprobacion es del lado servidor: no cambia nada en el equipo.
+   */
+  geofence: z
+    .object({
+      enabled: z.boolean().default(false),
+      allowed_ips: z.array(z.string().trim().min(3).max(64)).default([]),
+    })
+    .default({ enabled: false, allowed_ips: [] }),
+
   monitoring: z
     .object({
       /**

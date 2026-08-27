@@ -655,6 +655,46 @@ export function PolicyEditor({
         </CardContent>
       </Card>
 
+      {/* ------------------------------------------------------------- Geocerca */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Geocerca</CardTitle>
+          <CardDescription>
+            Si el equipo reporta desde una IP publica que no esta en la lista de la sede, se abre un
+            incidente. Es solo deteccion: no cambia nada en el equipo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={config.geofence.enabled}
+              onChange={(e) => patch('geofence', { enabled: e.target.checked })}
+              disabled={!canEdit}
+              className="mt-1"
+            />
+            <span>Vigilar la ubicacion por IP publica</span>
+          </label>
+          {config.geofence.enabled ? (
+            <StringListInput
+              label="IPs publicas autorizadas (sede)"
+              help="IP exacta o prefijo (p. ej. 190.24. cubre 190.24.*). Sin ninguna, no se vigila."
+              placeholder="190.24.15.10"
+              values={config.geofence.allowed_ips}
+              onChange={(v) => patch('geofence', { allowed_ips: v })}
+              validate={(raw) => {
+                const v = raw.trim()
+                return /^[0-9.]{3,}$/.test(v)
+                  ? ({ ok: true, value: v } as const)
+                  : ({ ok: false, error: 'IP o prefijo no valido' } as const)
+              }}
+              disabled={!canEdit}
+              mono
+            />
+          ) : null}
+        </CardContent>
+      </Card>
+
       {/* --------------------------------------------------------------- Redes */}
       <Card>
         <CardHeader>
