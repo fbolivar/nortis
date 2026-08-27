@@ -358,3 +358,30 @@ export function healthFlags(p: Posture): HealthFlag[] {
   if ((p.uptimeDays ?? 0) >= 30) flags.push({ label: `Sin reiniciar ${p.uptimeDays} dias`, tone: 'warning' })
   return flags
 }
+
+/* -------------------------------------------------------------------------- */
+/* Puntaje de cumplimiento                                                     */
+/* -------------------------------------------------------------------------- */
+
+export type ComplianceLevel = 'ok' | 'warning' | 'critical'
+
+export interface Compliance {
+  /** 0-100. Cada bandera critica resta 25; cada aviso, 10. */
+  score: number
+  level: ComplianceLevel
+  flags: HealthFlag[]
+}
+
+/**
+ * Puntaje de cumplimiento de un equipo a partir de su postura. Un equipo sin
+ * banderas puntua 100 (cumple). Las banderas criticas (cifrado, antivirus,
+ * cortafuegos, amenazas) pesan mas que los avisos (parches, uptime).
+ */
+export function compliance(hardware: Json | null): Compliance {
+  const flags = healthFlags(readPosture(hardware))
+  const crit = flags.filter((f) => f.tone === 'critical').length
+  const warn = flags.filter((f) => f.tone === 'warning').length
+  const score = Math.max(0, 100 - crit * 25 - warn * 10)
+  const level: ComplianceLevel = crit > 0 ? 'critical' : warn > 0 ? 'warning' : 'ok'
+  return { score, level, flags }
+}
