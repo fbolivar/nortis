@@ -397,19 +397,21 @@ export function PolicyEditor({
         </CardHeader>
         <CardContent className="space-y-4">
           <ModeSelector
-            legend="Que hacer con las aplicaciones de la lista"
+            legend="Que hacer con las aplicaciones"
             value={config.apps.mode}
-            options={['allow', 'alert', 'block'] as const}
-            labels={{ allow: 'Permitir', alert: 'Alertar', block: 'Bloquear' }}
+            options={['allow', 'alert', 'block', 'allowlist'] as const}
+            labels={{ allow: 'Permitir', alert: 'Alertar', block: 'Bloquear', allowlist: 'Lista blanca' }}
             help={{
               allow: 'No se controlan las aplicaciones.',
-              alert: 'Se abre un incidente cuando alguien abre un programa de la lista; el programa sigue funcionando.',
+              alert: 'Se abre un incidente cuando alguien abre un programa de la lista negra; el programa sigue funcionando.',
               block:
-                'Ademas de abrir el incidente, el agente TERMINA el proceso en el siguiente sondeo (hasta ~1 min). Mitiga, no previene: el programa alcanza a arrancar.',
+                'Ademas del incidente, el agente TERMINA el proceso de la lista negra al abrirse. Mitiga, no previene: el programa alcanza a arrancar.',
+              allowlist:
+                'SOLO se permiten los programas de la lista blanca; cualquier otro se alerta (y se cierra si activas el enforce). El agente nunca cierra procesos de sistema ni el escritorio.',
             }}
             onChange={(mode) => patch('apps', { mode })}
           />
-          {config.apps.mode !== 'allow' ? (
+          {config.apps.mode === 'alert' || config.apps.mode === 'block' ? (
             <StringListInput
               label="Aplicaciones bloqueadas"
               help="Nombre del ejecutable con .exe. Ej: anydesk.exe, utorrent.exe, teamviewer.exe."
@@ -419,6 +421,35 @@ export function PolicyEditor({
               validate={validateProcessExe}
               disabled={!canEdit}
             />
+          ) : null}
+          {config.apps.mode === 'allowlist' ? (
+            <>
+              <StringListInput
+                label="Aplicaciones permitidas"
+                help="Solo estos ejecutables podran usarse. Incluye lo esencial del trabajo (navegador, ofimatica, etc.)."
+                placeholder="chrome.exe"
+                values={config.apps.allowlist}
+                onChange={(allowlist) => patch('apps', { allowlist })}
+                validate={validateProcessExe}
+                disabled={!canEdit}
+              />
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={config.apps.allowlist_enforce}
+                  onChange={(e) => patch('apps', { allowlist_enforce: e.target.checked })}
+                  disabled={!canEdit}
+                  className="mt-1"
+                />
+                <span>
+                  Cerrar los programas no permitidos
+                  <span className="block text-xs text-muted-foreground">
+                    Sin marcar, solo se alerta (modo seguro para probar la lista antes de cerrar
+                    nada). Marcado, el agente termina cualquier programa fuera de la lista al abrirse.
+                  </span>
+                </span>
+              </label>
+            </>
           ) : null}
         </CardContent>
       </Card>

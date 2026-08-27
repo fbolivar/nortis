@@ -77,7 +77,7 @@ export const processExe = z
   .toLowerCase()
   .regex(/^[a-z0-9 ._-]+\.exe$/, 'Nombre de ejecutable, ej: anydesk.exe')
 
-const appsMode = z.enum(['allow', 'alert', 'block'])
+const appsMode = z.enum(['allow', 'alert', 'block', 'allowlist'])
 
 export const policyConfigSchema = z.object({
   storage: z
@@ -177,8 +177,13 @@ export const policyConfigSchema = z.object({
     .object({
       mode: appsMode.default('allow'),
       blocklist: z.array(processExe).default([]),
+      // Lista blanca de ejecutables permitidos (modo 'allowlist'). El resto se
+      // alerta y, si allowlist_enforce esta activo, se cierra al abrirse. El
+      // agente nunca cierra procesos de sistema ni el escritorio (explorer.exe).
+      allowlist: z.array(processExe).default([]),
+      allowlist_enforce: z.boolean().default(false),
     })
-    .default({ mode: 'allow', blocklist: [] }),
+    .default({ mode: 'allow', blocklist: [], allowlist: [], allowlist_enforce: false }),
 
   /**
    * Clases de datos VIGILADAS. Cuando un archivo que el agente etiquete con una
