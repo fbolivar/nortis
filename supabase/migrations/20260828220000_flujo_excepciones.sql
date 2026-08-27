@@ -1,0 +1,4 @@
+-- Flujo de excepciones (gestionada 'flujo_excepciones'): tabla policy_exceptions
+-- (usb/app/web, pending/approved/rejected, caducidad) + RPCs request_exception,
+-- resolve_exception (admin), agent_active_exceptions (por credencial). Las
+-- excepciones vigentes se fusionan en la politica en /api/agent/policy.

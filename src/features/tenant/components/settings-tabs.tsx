@@ -10,6 +10,8 @@ const TABS = [
   { href: '/settings/sites', label: 'Sedes' },
   { href: '/settings/api-keys', label: 'Credenciales de agente' },
   { href: '/settings/alerts', label: 'Alertas' },
+  { href: '/settings/exceptions', label: 'Excepciones' },
+  { href: '/settings/playbooks', label: 'Respuesta automatica' },
   { href: '/settings/audit', label: 'Auditoria' },
 ] as const
 

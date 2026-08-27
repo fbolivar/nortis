@@ -330,6 +330,43 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_exceptions: {
+        Row: {
+          id: string
+          organization_id: string
+          endpoint_id: string | null
+          kind: 'usb' | 'app' | 'web'
+          value: string
+          reason: string | null
+          status: 'pending' | 'approved' | 'rejected'
+          requested_by: string | null
+          resolved_by: string | null
+          expires_at: string | null
+          created_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          endpoint_id?: string | null
+          kind: 'usb' | 'app' | 'web'
+          value: string
+          reason?: string | null
+          status?: 'pending' | 'approved' | 'rejected'
+          requested_by?: string | null
+          resolved_by?: string | null
+          expires_at?: string | null
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          status?: 'pending' | 'approved' | 'rejected'
+          expires_at?: string | null
+          resolved_by?: string | null
+          resolved_at?: string | null
+        }
+        Relationships: []
+      }
       playbook_rules: {
         Row: {
           id: string
@@ -1075,6 +1112,23 @@ export type Database = {
       set_data_retention: {
         Args: { p_screenshot_days: number }
         Returns: undefined
+      }
+      request_exception: {
+        Args: {
+          p_kind: 'usb' | 'app' | 'web'
+          p_value: string
+          p_endpoint_id: string | null
+          p_reason: string | null
+        }
+        Returns: string
+      }
+      resolve_exception: {
+        Args: { p_id: string; p_approve: boolean; p_expires_at?: string | null }
+        Returns: undefined
+      }
+      agent_active_exceptions: {
+        Args: { p_credential: string; p_endpoint_id: string }
+        Returns: { kind: 'usb' | 'app' | 'web'; value: string }[]
       }
       upsert_playbook_rule: {
         Args: {
