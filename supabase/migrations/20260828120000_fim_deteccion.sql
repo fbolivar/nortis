@@ -1,0 +1,4 @@
+-- Deteccion FIM: agent_report_inventory compara los hashes de fim con la foto
+-- anterior y abre integrity.archivo_modificado (alta, canal 'integrity') si un
+-- archivo critico cambio de huella. Recreada con el bloque FIM añadido sobre la
+-- version de exposicion/persistencia (ver migracion gestionada 'fim_deteccion').

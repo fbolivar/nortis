@@ -327,6 +327,44 @@ export function readRuntime(hardware: Json | null): Runtime | undefined {
   return { topProcesses: top, activeUsers: users }
 }
 
+/* -------------------------------------------------------------------------- */
+/* Integridad de archivos (FIM) y descubrimiento de red                        */
+/* -------------------------------------------------------------------------- */
+
+export interface FimEntry {
+  path: string
+  hash?: string
+}
+
+export function readFim(hardware: Json | null): FimEntry[] {
+  const hw = obj(hardware) ?? {}
+  return asArray(hw.fim)
+    .map((f): FimEntry | undefined => {
+      const o = obj(f)
+      const path = o?.path
+      if (typeof path !== 'string' || path.trim() === '') return undefined
+      return { path, hash: typeof o?.hash === 'string' ? o.hash : undefined }
+    })
+    .filter((f): f is FimEntry => f !== undefined)
+}
+
+export interface LanHost {
+  ip: string
+  mac?: string
+}
+
+export function readLanHosts(hardware: Json | null): LanHost[] {
+  const hw = obj(hardware) ?? {}
+  return asArray(hw.lan_hosts)
+    .map((h): LanHost | undefined => {
+      const o = obj(h)
+      const ip = o?.ip
+      if (typeof ip !== 'string' || ip.trim() === '') return undefined
+      return { ip, mac: typeof o?.mac === 'string' ? o.mac : undefined }
+    })
+    .filter((h): h is LanHost => h !== undefined)
+}
+
 export interface HealthFlag {
   label: string
   tone: 'critical' | 'warning'

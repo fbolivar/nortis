@@ -10,6 +10,8 @@ import {
   readUsbHistory,
   readTrust,
   readRuntime,
+  readFim,
+  readLanHosts,
 } from '@/features/inventory/lib/posture'
 import {
   Cpu,
@@ -99,6 +101,8 @@ export function EndpointInventory({
   const usb = readUsbHistory(hardware)
   const confianza = readTrust(hardware)
   const runtime = readRuntime(hardware)
+  const fim = readFim(hardware)
+  const lanHosts = readLanHosts(hardware)
   const si = (v?: boolean) => (v === undefined ? '—' : v ? 'Si' : 'No')
 
   const hw = (hardware && typeof hardware === 'object' && !Array.isArray(hardware)
@@ -536,6 +540,72 @@ export function EndpointInventory({
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {fim.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Integridad de archivos</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Huella de archivos criticos del sistema. Un cambio de huella entre inventarios abre un
+              incidente de integridad.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Archivo</Th>
+                    <Th>SHA-256</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fim.map((f, i) => (
+                    <tr key={`${f.path}-${i}`} className="hover:bg-surface-muted">
+                      <Td className="font-mono text-xs">{f.path}</Td>
+                      <Td className="font-mono text-[0.65rem] text-muted-foreground">
+                        {f.hash ? `${f.hash.slice(0, 16)}…` : '—'}
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {lanHosts.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vecinos en la red</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Dispositivos detectados en la subred local ({lanHosts.length}). Util para descubrir
+              equipos sin agente (shadow IT).
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>IP</Th>
+                    <Th>MAC</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lanHosts.map((h, i) => (
+                    <tr key={`${h.ip}-${i}`} className="hover:bg-surface-muted">
+                      <Td className="font-mono text-xs tabular-nums">{h.ip}</Td>
+                      <Td className="font-mono text-xs text-muted-foreground">{h.mac ?? '—'}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       ) : null}
