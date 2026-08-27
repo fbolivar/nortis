@@ -341,6 +341,50 @@ export async function issueRefreshInventory(
   return issue(parsed.data.endpointIds, 'refresh_inventory', {})
 }
 
+/* ------------------------------------------------------- account_action ---- */
+
+const accountActionSchema = z.object({
+  endpointIds: endpointsSchema,
+  action: z.enum(['disable', 'enable', 'delete', 'logoff']),
+  target: z.string().trim().min(1, 'Falta la cuenta objetivo').max(256),
+})
+export type IssueAccountActionInput = z.input<typeof accountActionSchema>
+
+export async function issueAccountAction(input: IssueAccountActionInput): Promise<IssueResult> {
+  const parsed = accountActionSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  const { endpointIds, action, target } = parsed.data
+  return issue(endpointIds, 'account_action', { action, target })
+}
+
+/* --------------------------------------------------------------- harden ---- */
+
+const hardenSchema = z.object({
+  endpointIds: endpointsSchema,
+  targets: z.array(z.enum(['firewall', 'defender'])).min(1, 'Elige que endurecer'),
+})
+export type IssueHardenInput = z.input<typeof hardenSchema>
+
+export async function issueHarden(input: IssueHardenInput): Promise<IssueResult> {
+  const parsed = hardenSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'harden', { targets: parsed.data.targets })
+}
+
+/* ------------------------------------------------------- network_isolate ---- */
+
+const isolateSchema = z.object({
+  endpointIds: endpointsSchema,
+  enable: z.boolean(),
+})
+export type IssueIsolateInput = z.input<typeof isolateSchema>
+
+export async function issueIsolate(input: IssueIsolateInput): Promise<IssueResult> {
+  const parsed = isolateSchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'network_isolate', { enable: parsed.data.enable })
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'

@@ -8,10 +8,13 @@ import {
   Clock,
   Lock,
   MessageSquare,
+  Network,
   Power,
   RefreshCw,
   ShieldCheck,
+  ShieldPlus,
   Trash2,
+  UserX,
 } from 'lucide-react'
 import {
   Button,
@@ -28,6 +31,9 @@ import {
   issueKill,
   issueLock,
   issueMessage,
+  issueAccountAction,
+  issueHarden,
+  issueIsolate,
   issueRefreshInventory,
   issueScan,
   issueScheduleScript,
@@ -70,6 +76,7 @@ export function RemoteActions({
   const [schedScript, setSchedScript] = useState('')
   const [schedEvery, setSchedEvery] = useState('60')
   const [schedInterp, setSchedInterp] = useState<'powershell' | 'cmd'>('powershell')
+  const [cuenta, setCuenta] = useState('')
 
   /** Envuelve una server action de una sola-tarea y refleja su resultado. */
   function run(fn: () => Promise<{ results: { error?: string }[] }>, okMsg: string) {
@@ -265,6 +272,134 @@ export function RemoteActions({
               <Ban className="mr-1.5 h-4 w-4" aria-hidden />
               Cerrar proceso
             </Button>
+          </div>
+        </div>
+
+        {/* Respuesta y contencion: cuentas, endurecimiento, aislamiento. */}
+        <div className="space-y-4 rounded-xl border border-border bg-surface-muted/40 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <ShieldPlus className="h-4 w-4" aria-hidden />
+            Respuesta y contencion
+          </div>
+
+          {/* Respuesta a cuentas. */}
+          <div className="space-y-2">
+            <Label>Actuar sobre una cuenta local</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={cuenta}
+                onChange={(e) => setCuenta(e.target.value)}
+                placeholder="usuario"
+                className="max-w-[14rem]"
+              />
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  run(
+                    () => issueAccountAction({ endpointIds: [endpointId], action: 'disable', target: cuenta.trim() }),
+                    'Cuenta deshabilitada.'
+                  )
+                }
+                disabled={pending || cuenta.trim() === ''}
+              >
+                Deshabilitar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  run(
+                    () => issueAccountAction({ endpointIds: [endpointId], action: 'enable', target: cuenta.trim() }),
+                    'Cuenta habilitada.'
+                  )
+                }
+                disabled={pending || cuenta.trim() === ''}
+              >
+                Habilitar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  run(
+                    () => issueAccountAction({ endpointIds: [endpointId], action: 'logoff', target: cuenta.trim() }),
+                    'Cierre de sesion enviado.'
+                  )
+                }
+                disabled={pending || cuenta.trim() === ''}
+              >
+                Cerrar sesion
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  if (!window.confirm(`Eliminar la cuenta "${cuenta.trim()}" del equipo? No se puede deshacer.`)) return
+                  run(
+                    () => issueAccountAction({ endpointIds: [endpointId], action: 'delete', target: cuenta.trim() }),
+                    'Cuenta eliminada.'
+                  )
+                }}
+                disabled={pending || cuenta.trim() === ''}
+              >
+                <UserX className="mr-1.5 h-4 w-4" aria-hidden />
+                Eliminar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Las cuentas integradas criticas (Administrador, SYSTEM) estan protegidas y no se pueden
+              eliminar ni deshabilitar.
+            </p>
+          </div>
+
+          {/* Endurecimiento. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                run(
+                  () => issueHarden({ endpointIds: [endpointId], targets: ['firewall', 'defender'] }),
+                  'Endurecimiento enviado.'
+                )
+              }
+              disabled={pending}
+            >
+              <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden />
+              Activar firewall y Defender
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Antes de encender el firewall se preserva el acceso RDP (regla para el puerto 3389).
+            </span>
+          </div>
+
+          {/* Aislamiento de red. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    `Aislar ${hostname} de la red? Se bloquea todo salvo el enlace con la consola y RDP. Reversible.`
+                  )
+                )
+                  return
+                run(() => issueIsolate({ endpointIds: [endpointId], enable: true }), 'Aislamiento enviado.')
+              }}
+              disabled={pending}
+            >
+              <Network className="mr-1.5 h-4 w-4" aria-hidden />
+              Aislar de la red
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                run(() => issueIsolate({ endpointIds: [endpointId], enable: false }), 'Retiro de aislamiento enviado.')
+              }
+              disabled={pending}
+            >
+              Retirar aislamiento
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              El agente mantiene su enlace de salida, asi el aislamiento siempre se puede revertir
+              desde aqui.
+            </span>
           </div>
         </div>
 
