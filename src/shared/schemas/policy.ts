@@ -195,6 +195,16 @@ export const policyConfigSchema = z.object({
     .default({ enabled: false, days: [1, 2, 3, 4, 5], start: '08:00', end: '18:00' }),
 
   /**
+   * Integridad de archivos (FIM). Rutas de archivos criticos a vigilar por hash.
+   * Vacio = el agente usa su lista fija (hosts, cmd.exe, explorer.exe).
+   */
+  fim: z
+    .object({
+      paths: z.array(z.string().trim().min(3).max(240)).default([]),
+    })
+    .default({ paths: [] }),
+
+  /**
    * Geocerca. Si esta activa, el equipo solo deberia verse desde las IP publicas
    * autorizadas (la sede). Si reporta desde otra, se abre un incidente. La
    * comprobacion es del lado servidor: no cambia nada en el equipo.

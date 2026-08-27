@@ -655,6 +655,35 @@ export function PolicyEditor({
         </CardContent>
       </Card>
 
+      {/* ------------------------------------------------- Integridad (FIM) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Integridad de archivos</CardTitle>
+          <CardDescription>
+            Rutas de archivos criticos que el agente vigila por huella (SHA-256). Si una cambia entre
+            inventarios, se abre un incidente. Sin ninguna, se vigila la lista por defecto (hosts,
+            cmd.exe, explorer.exe).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StringListInput
+            label="Rutas a vigilar"
+            help={'Ruta absoluta de Windows (p. ej. C:\\Windows\\System32\\drivers\\etc\\hosts).'}
+            placeholder={'C:\\ruta\\al\\archivo'}
+            values={config.fim.paths}
+            onChange={(v) => patch('fim', { paths: v })}
+            validate={(raw) => {
+              const v = raw.trim()
+              return /^[A-Za-z]:\\[^"`$\r\n;|&<>]{1,240}$/.test(v)
+                ? ({ ok: true, value: v } as const)
+                : ({ ok: false, error: 'Ruta absoluta de Windows no valida' } as const)
+            }}
+            disabled={!canEdit}
+            mono
+          />
+        </CardContent>
+      </Card>
+
       {/* ------------------------------------------------------------- Geocerca */}
       <Card>
         <CardHeader>
