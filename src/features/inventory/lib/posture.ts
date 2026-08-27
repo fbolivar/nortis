@@ -18,6 +18,10 @@ export interface Posture {
   lastQuickScan?: string
   lastFullScan?: string
   threats?: ThreatItem[]
+  pendingUpdates?: number
+  updateTitles?: string[]
+  lastPatch?: string
+  autoUpdate?: boolean
 }
 
 /** Amenaza conocida por Defender (Get-MpThreat). */
@@ -110,6 +114,22 @@ export function readPosture(hardware: Json | null): Posture {
       p.firewallOn = perfiles.every((x) => truthy(obj(x)?.Enabled) === true)
     }
   }
+
+  const upd = obj(hw.updates)
+  if (upd) {
+    const pending = obj(upd.pending)
+    if (pending) {
+      p.pendingUpdates = num(pending.count)
+      const titles = Array.isArray(pending.titles) ? pending.titles : []
+      const list = titles.filter((t): t is string => typeof t === 'string')
+      if (list.length > 0) p.updateTitles = list
+    }
+    p.lastPatch = psDate(upd.last_hotfix)
+    // AUOptions: 4 = descargar e instalar automaticamente, 5 = gestionado por
+    // admin; ambos cuentan como "automatico". 1 = nunca comprobar (desactivado).
+    const au = num(upd.au_options)
+    if (au !== undefined) p.autoUpdate = au >= 4
+  }
   return p
 }
 
@@ -184,6 +204,13 @@ export function healthFlags(p: Posture): HealthFlag[] {
   if (p.firewallOn === false) flags.push({ label: 'Cortafuegos desactivado', tone: 'critical' })
   if ((p.signatureAgeDays ?? 0) > 7) flags.push({ label: 'Firmas de antivirus desactualizadas', tone: 'warning' })
   if (p.pendingReboot) flags.push({ label: 'Reinicio pendiente', tone: 'warning' })
+  if (p.autoUpdate === false)
+    flags.push({ label: 'Windows Update automatico desactivado', tone: 'warning' })
+  if ((p.pendingUpdates ?? 0) > 0)
+    flags.push({
+      label: `${p.pendingUpdates} actualizacion${p.pendingUpdates === 1 ? '' : 'es'} pendiente${p.pendingUpdates === 1 ? '' : 's'}`,
+      tone: 'warning',
+    })
   if ((p.diskUsedPct ?? 0) >= 90) flags.push({ label: 'Disco casi lleno', tone: 'warning' })
   if ((p.uptimeDays ?? 0) >= 30) flags.push({ label: `Sin reiniciar ${p.uptimeDays} dias`, tone: 'warning' })
   return flags

@@ -233,7 +233,28 @@ export function EndpointInventory({
             />
             <PostureItem label="Ultimo escaneo rapido" value={fechaCorta(postura.lastQuickScan)} />
             <PostureItem label="Ultimo escaneo completo" value={fechaCorta(postura.lastFullScan)} />
+            <PostureItem label="Windows Update automatico" value={si(postura.autoUpdate)} />
+            <PostureItem
+              label="Actualizaciones pendientes"
+              value={postura.pendingUpdates === undefined ? '—' : String(postura.pendingUpdates)}
+            />
+            <PostureItem label="Ultimo parche" value={fechaCorta(postura.lastPatch)} />
           </dl>
+
+          {(postura.updateTitles ?? []).length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">
+                Actualizaciones pendientes
+              </p>
+              <ul className="space-y-1">
+                {(postura.updateTitles ?? []).map((t, i) => (
+                  <li key={`${t}-${i}`} className="text-sm text-muted-foreground">
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {(postura.threats ?? []).length > 0 ? (
             <div className="space-y-1.5">
