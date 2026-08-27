@@ -41,6 +41,7 @@ export function AlertSettingsForm({
     recipients: string[]
     min_severity: IncidentSeverity
     slack_webhook_url: string
+    weekly_report: boolean
   }
   canEdit: boolean
 }) {
@@ -53,6 +54,7 @@ export function AlertSettingsForm({
   const [recipients, setRecipients] = useState<string[]>(initial.recipients)
   const [minSeverity, setMinSeverity] = useState<IncidentSeverity>(initial.min_severity)
   const [slackUrl, setSlackUrl] = useState(initial.slack_webhook_url)
+  const [weekly, setWeekly] = useState(initial.weekly_report)
 
   function save() {
     setError(undefined)
@@ -64,6 +66,7 @@ export function AlertSettingsForm({
         p_recipients: recipients,
         p_min_severity: minSeverity,
         p_slack_webhook_url: slackUrl.trim() || null,
+        p_weekly_report: weekly,
       })
       if (e) {
         setError(e.message)
@@ -155,6 +158,23 @@ export function AlertSettingsForm({
               de Slack (o cualquier webhook https). Funciona independiente del correo.
             </p>
           </div>
+
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={weekly}
+              disabled={!canEdit}
+              onChange={(e) => setWeekly(e.target.checked)}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span>
+              <span className="text-sm font-medium">Enviar un resumen semanal</span>
+              <span className="block text-xs text-muted-foreground">
+                Cada lunes, un correo con los incidentes abiertos de la semana a los mismos
+                destinatarios.
+              </span>
+            </span>
+          </label>
 
           {saved ? (
             <p className="text-sm text-success">Guardado.</p>

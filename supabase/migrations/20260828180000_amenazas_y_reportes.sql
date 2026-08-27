@@ -1,0 +1,3 @@
+-- Amenaza activa de Defender -> incidente threat.amenaza_activa (gestionada 'detect_active_threats').
+-- Reportes programados: alert_settings.weekly_report + send_weekly_reports (gestionada 'reportes_programados').
+-- set_alert_settings ahora acepta p_weekly_report.
