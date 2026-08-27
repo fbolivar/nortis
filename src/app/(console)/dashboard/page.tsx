@@ -25,6 +25,8 @@ import { UsersByIncidents } from '@/features/dashboard/components/users-by-incid
 import { ruleLabel } from '@/features/incidents/types/incidents'
 import { ClassificationBars } from '@/features/classification/components/classification-bars'
 import { classifyPath, type Classification } from '@/features/classification/lib/classify'
+import { readPosture, compliance } from '@/features/inventory/lib/posture'
+import { FleetPosture, type FleetPostureData } from '@/features/dashboard/components/fleet-posture'
 
 /** Titulo de seccion del panel. */
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -144,6 +146,8 @@ export default async function DashboardPage() {
     connectedUsb,
     classifications,
     fileEvents,
+    postureRows,
+    pendingExc,
   ] = await Promise.all([
     // `select('id')` y no `select('*')` en los conteos: `authenticated` no tiene
     // permiso sobre agent_credential_hash, y pedir la tabla entera —aunque sea
@@ -201,6 +205,14 @@ export default async function DashboardPage() {
       .in('event_type', ['file_created', 'file_modified', 'file_deleted'])
       .gte('occurred_at', offlineCutoffISO(INSIGHT_DAYS * 24 * 60))
       .limit(5000),
+    // Postura de la flota: el hardware_info de cada equipo, para calcular
+    // cumplimiento y contar las brechas de seguridad mas comunes.
+    supabase.from('endpoints').select('hardware_info').limit(2000),
+    // Excepciones pendientes de aprobar.
+    supabase
+      .from('policy_exceptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
   ])
 
   const totalEndpoints = endpoints.count ?? 0
@@ -236,6 +248,38 @@ export default async function DashboardPage() {
   }
 
   const consentSigned = Boolean(session?.organization?.monitoring_consent_signed_at)
+
+  // Postura de la flota: se agrega en Node a partir del hardware_info de cada
+  // equipo. Un equipo sin inventario todavia no cuenta como incumplimiento.
+  const fleet: FleetPostureData = {
+    scored: 0,
+    avgScore: null,
+    ok: 0,
+    warning: 0,
+    critical: 0,
+    noAntivirus: 0,
+    firewallOff: 0,
+    diskUnencrypted: 0,
+    activeThreats: 0,
+    pendingUpdates: 0,
+    pendingExceptions: pendingExc.count ?? 0,
+  }
+  let scoreSum = 0
+  for (const row of postureRows.data ?? []) {
+    const hw = (row as { hardware_info: unknown }).hardware_info
+    if (!hw || typeof hw !== 'object' || Object.keys(hw as object).length === 0) continue
+    const p = readPosture(hw as never)
+    const c = compliance(hw as never)
+    fleet.scored += 1
+    scoreSum += c.score
+    fleet[c.level] += 1
+    if (p.antivirusEnabled === false) fleet.noAntivirus += 1
+    if (p.firewallOn === false) fleet.firewallOff += 1
+    if (p.diskEncrypted === false) fleet.diskUnencrypted += 1
+    if ((p.threats ?? []).some((t) => t.active)) fleet.activeThreats += 1
+    if ((p.pendingUpdates ?? 0) > 0) fleet.pendingUpdates += 1
+  }
+  if (fleet.scored > 0) fleet.avgScore = Math.round(scoreSum / fleet.scored)
 
   // Acciones de la tarjeta "Fortalece tu proteccion", en orden de urgencia.
   const protectionItems: ProtectionItem[] = [
@@ -330,6 +374,14 @@ export default async function DashboardPage() {
               Registrar autorizacion
             </Link>
           </Callout>
+        ) : null}
+
+        {/* --------------------------------------- Cumplimiento y postura --- */}
+        {fleet.scored > 0 ? (
+          <section className="space-y-3">
+            <SectionTitle>Cumplimiento y postura de la flota</SectionTitle>
+            <FleetPosture data={fleet} />
+          </section>
         ) : null}
 
         {/* ------------------------------------------------------ Incidentes --- */}
