@@ -2,7 +2,17 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Ban, Camera, Clock, Lock, MessageSquare, Power, ShieldCheck, Trash2 } from 'lucide-react'
+import {
+  Ban,
+  Camera,
+  Clock,
+  Lock,
+  MessageSquare,
+  Power,
+  RefreshCw,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react'
 import {
   Button,
   Callout,
@@ -18,6 +28,7 @@ import {
   issueKill,
   issueLock,
   issueMessage,
+  issueRefreshInventory,
   issueScan,
   issueScheduleScript,
   issueScreenshot,
@@ -147,6 +158,26 @@ export function RemoteActions({
             {consentSigned
               ? 'Aparecera en la galeria del equipo en ~1 min.'
               : 'Requiere el consentimiento de monitoreo firmado (Administracion).'}
+          </span>
+        </div>
+
+        {/* Inventario bajo demanda. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={() =>
+              run(
+                () => issueRefreshInventory({ endpointIds: [endpointId] }),
+                'Actualizacion de inventario solicitada.'
+              )
+            }
+            disabled={pending}
+          >
+            <RefreshCw className="mr-1.5 h-4 w-4" aria-hidden />
+            Actualizar inventario
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Fuerza un barrido inmediato (software, hardware, cuentas) sin esperar al ciclo de 6 h.
           </span>
         </div>
 

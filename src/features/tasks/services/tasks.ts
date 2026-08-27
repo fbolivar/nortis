@@ -328,6 +328,19 @@ export async function issueScan(input: IssueScanInput): Promise<IssueResult> {
   return issue(parsed.data.endpointIds, 'scan_av', { type: parsed.data.type })
 }
 
+/* ------------------------------------------------------ refresh_inventory -- */
+
+const refreshInventorySchema = z.object({ endpointIds: endpointsSchema })
+export type IssueRefreshInventoryInput = z.input<typeof refreshInventorySchema>
+
+export async function issueRefreshInventory(
+  input: IssueRefreshInventoryInput
+): Promise<IssueResult> {
+  const parsed = refreshInventorySchema.safeParse(input)
+  if (!parsed.success) return fail(input?.endpointIds, parsed.error.issues[0]?.message)
+  return issue(parsed.data.endpointIds, 'refresh_inventory', {})
+}
+
 /** Resultado de error homogeneo por equipo cuando la validacion falla. */
 function fail(endpointIds: string[] | undefined, message?: string): IssueResult {
   const msg = message ?? 'Datos invalidos'
