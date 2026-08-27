@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { issueUninstall } from '@/features/tasks/services/tasks'
-import { readPosture, healthFlags } from '@/features/inventory/lib/posture'
+import { readPosture, healthFlags, readAccounts } from '@/features/inventory/lib/posture'
 import {
   Cpu,
   HardDrive,
@@ -86,6 +86,7 @@ export function EndpointInventory({
 
   const postura = readPosture(hardware)
   const flags = healthFlags(postura)
+  const cuentas = readAccounts(hardware)
   const si = (v?: boolean) => (v === undefined ? '—' : v ? 'Si' : 'No')
 
   const hw = (hardware && typeof hardware === 'object' && !Array.isArray(hardware)
@@ -260,6 +261,77 @@ export function EndpointInventory({
           ) : null}
         </CardContent>
       </Card>
+
+      {cuentas && (cuentas.users.length > 0 || cuentas.admins.length > 0) ? (
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+            <CardTitle>Cuentas y accesos</CardTitle>
+            {cuentas.failedLogons24h !== undefined ? (
+              <Badge tone={cuentas.failedLogons24h > 0 ? 'warning' : 'neutral'}>
+                {cuentas.failedLogons24h} inicio{cuentas.failedLogons24h === 1 ? '' : 's'} fallido
+                {cuentas.failedLogons24h === 1 ? '' : 's'} (24 h)
+              </Badge>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {cuentas.admins.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Administradores locales ({cuentas.admins.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {cuentas.admins.map((a, i) => (
+                    <Badge key={`${a}-${i}`} tone="info">
+                      {a}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {cuentas.users.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>Cuenta local</Th>
+                      <Th>Estado</Th>
+                      <Th>Rol</Th>
+                      <Th>Ultimo inicio</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cuentas.users.map((u, i) => (
+                      <tr key={`${u.name}-${i}`} className="hover:bg-surface-muted">
+                        <Td className="font-medium">{u.name}</Td>
+                        <Td>
+                          {u.enabled === undefined ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <Badge tone={u.enabled ? 'success' : 'neutral'}>
+                              {u.enabled ? 'Habilitada' : 'Deshabilitada'}
+                            </Badge>
+                          )}
+                        </Td>
+                        <Td>
+                          {u.isAdmin ? (
+                            <Badge tone="warning">Administrador</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">Usuario</span>
+                          )}
+                        </Td>
+                        <Td className="whitespace-nowrap text-muted-foreground tabular-nums">
+                          {u.lastLogon ? formatRelative(u.lastLogon) : 'Nunca'}
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {hasNetwork ? (
         <Card>

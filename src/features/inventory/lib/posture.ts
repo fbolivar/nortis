@@ -113,6 +113,57 @@ export function readPosture(hardware: Json | null): Posture {
   return p
 }
 
+/* -------------------------------------------------------------------------- */
+/* Auditoria de cuentas y accesos                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface LocalUser {
+  name: string
+  enabled?: boolean
+  lastLogon?: string
+  isAdmin: boolean
+}
+
+export interface Accounts {
+  users: LocalUser[]
+  admins: string[]
+  failedLogons24h?: number
+}
+
+/** Convierte un valor que PowerShell pudo serializar como objeto/arreglo unico. */
+function asArray(v: unknown): unknown[] {
+  if (Array.isArray(v)) return v
+  return v === null || v === undefined ? [] : [v]
+}
+
+export function readAccounts(hardware: Json | null): Accounts | undefined {
+  const hw = obj(hardware) ?? {}
+  const acc = obj(hw.accounts)
+  if (!acc) return undefined
+
+  const admins = asArray(acc.admins)
+    .map((a) => (typeof a === 'string' ? a : undefined))
+    .filter((a): a is string => a !== undefined && a.trim() !== '')
+  const adminSet = new Set(admins.map((a) => a.toLowerCase()))
+
+  const users = asArray(acc.users)
+    .map((u): LocalUser | undefined => {
+      const o = obj(u)
+      const name = o?.Name
+      if (typeof name !== 'string' || name.trim() === '') return undefined
+      const lastLogon = typeof o?.LastLogon === 'string' ? o.LastLogon : undefined
+      // El nombre de un admin puede venir como "EQUIPO\\usuario"; se compara por la
+      // parte final para casar con el usuario local.
+      const short = name.includes('\\') ? name.slice(name.lastIndexOf('\\') + 1) : name
+      const isAdmin =
+        adminSet.has(name.toLowerCase()) || adminSet.has(short.toLowerCase())
+      return { name, enabled: truthy(o?.Enabled), lastLogon, isAdmin }
+    })
+    .filter((u): u is LocalUser => u !== undefined)
+
+  return { users, admins, failedLogons24h: num(acc.failed_logons_24h) }
+}
+
 export interface HealthFlag {
   label: string
   tone: 'critical' | 'warning'
