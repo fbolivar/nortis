@@ -376,29 +376,29 @@ export function RemoteActions({
               onClick={() => {
                 if (
                   !window.confirm(
-                    `Aislar ${hostname} de la red? Se bloquea todo salvo el enlace con la consola y RDP. Reversible.`
+                    `Contener ${hostname}? Se corta el movimiento lateral en la LAN (SMB, NetBIOS, RPC, WinRM). Internet, RDP y el agente siguen activos. Reversible.`
                   )
                 )
                   return
-                run(() => issueIsolate({ endpointIds: [endpointId], enable: true }), 'Aislamiento enviado.')
+                run(() => issueIsolate({ endpointIds: [endpointId], enable: true }), 'Contencion enviada.')
               }}
               disabled={pending}
             >
               <Network className="mr-1.5 h-4 w-4" aria-hidden />
-              Aislar de la red
+              Contener en la LAN
             </Button>
             <Button
               variant="secondary"
               onClick={() =>
-                run(() => issueIsolate({ endpointIds: [endpointId], enable: false }), 'Retiro de aislamiento enviado.')
+                run(() => issueIsolate({ endpointIds: [endpointId], enable: false }), 'Retiro de contencion enviado.')
               }
               disabled={pending}
             >
-              Retirar aislamiento
+              Retirar contencion
             </Button>
             <span className="text-xs text-muted-foreground">
-              El agente mantiene su enlace de salida, asi el aislamiento siempre se puede revertir
-              desde aqui.
+              Corta SMB/NetBIOS/RPC/WinRM hacia y desde la red local. No toca la salida a internet, asi
+              el agente nunca pierde su enlace y la contencion siempre se revierte desde aqui.
             </span>
           </div>
         </div>
