@@ -1,0 +1,3 @@
+-- Amplia la auditoria existente (log_admin_change) a agent_tasks, playbook_rules
+-- y alert_settings (gestionada 'auditoria_cobertura_ampliada'). La tabla audit_log,
+-- la funcion y la pagina settings/audit ya existian.

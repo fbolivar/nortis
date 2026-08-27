@@ -23,6 +23,12 @@ const ACTION_TONE: Record<string, 'critical' | 'warning' | 'info' | 'neutral'> =
   'security_profiles.insert': 'info',
   'security_profiles.update': 'warning',
   'users.update': 'warning',
+  'agent_tasks.insert': 'warning',
+  'playbook_rules.delete': 'critical',
+  'playbook_rules.insert': 'info',
+  'playbook_rules.update': 'warning',
+  'alert_settings.insert': 'info',
+  'alert_settings.update': 'info',
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -41,6 +47,12 @@ const ACTION_LABEL: Record<string, string> = {
   'users.delete': 'Usuario eliminado',
   'encrypted_documents.update': 'Documento cifrado modificado',
   'encrypted_documents.delete': 'Documento cifrado eliminado',
+  'agent_tasks.insert': 'Accion remota encargada',
+  'playbook_rules.insert': 'Playbook creado',
+  'playbook_rules.update': 'Playbook modificado',
+  'playbook_rules.delete': 'Playbook eliminado',
+  'alert_settings.insert': 'Alertas configuradas',
+  'alert_settings.update': 'Alertas modificadas',
 }
 
 export default async function AuditPage() {
