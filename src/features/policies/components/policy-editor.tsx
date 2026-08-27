@@ -461,8 +461,9 @@ export function PolicyEditor({
             <span>
               Exigir cifrado (BitLocker)
               <span className="block text-xs text-muted-foreground">
-                Conectar un USB sin cifrar abre un incidente. El agente reporta el estado; no bloquea
-                el dispositivo por si mismo.
+                Conectar un USB sin cifrar abre un incidente Y el agente lo expulsa (no hay
+                solo-lectura por dispositivo en modo usuario, asi que se expulsa entero). Las memorias
+                cifradas funcionan con normalidad.
               </span>
             </span>
           </label>
