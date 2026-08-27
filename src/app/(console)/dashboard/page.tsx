@@ -259,6 +259,8 @@ export default async function DashboardPage() {
   const insightsSeries = incidentsPerDay(incidentRows)
   const topUsersByIncidents = usersByIncidents(incidentRows)
 
+  const currentVersion = currentRelease.data?.[0]?.version ?? null
+
   // Acciones remotas: conteo por estado + las mas recientes.
   type TaskRow = {
     id: string
@@ -322,8 +324,6 @@ export default async function DashboardPage() {
     fileEvents.data ?? [],
     (classifications.data ?? []) as Classification[],
   )
-
-  const currentVersion = currentRelease.data?.[0]?.version ?? null
 
   // Equipos con el agente por debajo de la version vigente. Se cuenta aparte
   // porque necesita la version, que sale de otra consulta.
