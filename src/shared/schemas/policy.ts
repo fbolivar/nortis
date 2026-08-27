@@ -109,8 +109,11 @@ export const policyConfigSchema = z.object({
       /** Si tiene elementos, funciona como lista blanca: todo lo demas se bloquea. */
       allowed_domains: z.array(domain).default([]),
       block_webmail: z.boolean().default(false),
+      // Categorias de sitios a bloquear. Se expanden a dominios al servir la
+      // politica al agente (ver web-categories.ts).
+      blocked_categories: z.array(z.string()).default([]),
     })
-    .default({ blocked_domains: [], allowed_domains: [], block_webmail: false }),
+    .default({ blocked_domains: [], allowed_domains: [], block_webmail: false, blocked_categories: [] }),
 
   clipboard: z
     .object({

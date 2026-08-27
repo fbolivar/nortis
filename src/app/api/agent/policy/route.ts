@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAgentRequest, mapPostgresError } from '@/shared/lib/agent-auth'
 import { policyRequestSchema } from '@/shared/schemas/agent-api'
 import { POLICY_SCHEMA_VERSION } from '@/shared/schemas/policy'
+import { expandWebCategories } from '@/shared/lib/web-categories'
 
 /**
  * POST /api/agent/policy
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
         id: row.profile_id,
         name: row.profile_name,
         schema_version: row.schema_version,
-        config: row.config,
+        // Las categorias web se expanden a dominios aqui: el agente las bloquea
+        // como cualquier dominio, sin tener que entender de categorias.
+        config: expandWebCategories(row.config),
         updated_at: row.updated_at,
       },
       monitoring_allowed: row.monitoring_allowed,

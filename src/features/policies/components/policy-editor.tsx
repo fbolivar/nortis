@@ -19,6 +19,7 @@ import {
 } from '@/shared/components/ui'
 import { StringListInput } from './string-list-input'
 import { PolicySimulator } from './policy-simulator'
+import { WEB_CATEGORIES } from '@/shared/lib/web-categories'
 import {
   APLICACION_POR_CANAL,
   NIVEL_LABEL,
@@ -475,6 +476,40 @@ export function PolicyEditor({
           <Aplicacion canal="web" />
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label>Categorias bloqueadas</Label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {Object.entries(WEB_CATEGORIES).map(([key, cat]) => {
+                const on = config.web.blocked_categories.includes(key)
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!canEdit}
+                    onClick={() =>
+                      patch('web', {
+                        blocked_categories: on
+                          ? config.web.blocked_categories.filter((c) => c !== key)
+                          : [...config.web.blocked_categories, key],
+                      })
+                    }
+                    className={
+                      'rounded-full border px-3 py-1.5 text-sm transition-colors ' +
+                      (on
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-surface-muted text-muted-foreground hover:border-primary/40')
+                    }
+                  >
+                    {cat.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Cada categoria bloquea una lista de sitios conocidos, ademas de los dominios que añadas
+              abajo.
+            </p>
+          </div>
           <StringListInput
             label="Dominios bloqueados"
             placeholder="wetransfer.com"
